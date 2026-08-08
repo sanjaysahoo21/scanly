@@ -1,0 +1,224 @@
+/* ============================================
+   Documents Pages — List, Upload, Detail
+   ============================================ */
+
+/* --- File Uploader --- */
+.file-uploader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-12) var(--space-8);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.drop-zone:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+.drop-zone-active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+  transform: scale(1.01);
+}
+
+.drop-zone-input {
+  display: none;
+}
+
+.drop-zone-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-2);
+}
+
+.drop-zone-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.drop-zone-title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.drop-zone-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.drop-zone-link {
+  color: var(--color-accent);
+  font-weight: var(--weight-medium);
+}
+
+.drop-zone-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+
+/* File List */
+.file-list {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.file-list-header {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.file-list-header h4 {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background var(--transition-fast);
+}
+
+.file-item:last-of-type {
+  border-bottom: none;
+}
+
+.file-item:hover {
+  background: var(--color-bg-alt);
+}
+
+.file-item-error {
+  background: var(--color-error-bg);
+}
+
+.file-item-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.file-item-error .file-item-icon {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.file-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.file-item-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-item-size {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.file-item-error-text {
+  font-size: var(--text-xs);
+  color: var(--color-error);
+  font-weight: var(--weight-medium);
+}
+
+.file-item-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.file-item-remove:hover {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.file-list-actions {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-border-light);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* --- Document Table Extras --- */
+.doc-name-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-weight: var(--weight-medium);
+}
+
+.doc-name-cell svg {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.doc-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.doc-action-btn:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}

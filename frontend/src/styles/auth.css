@@ -1,0 +1,119 @@
+/* ============================================
+   Auth Pages — Login, Register
+   ============================================ */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-alt);
+  padding: var(--space-4);
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 420px;
+  animation: fadeInUp var(--transition-slow) both;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+}
+
+.auth-brand-icon {
+  width: 44px;
+  height: 44px;
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--weight-bold);
+  font-size: var(--text-xl);
+}
+
+.auth-brand-text {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+
+.auth-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-lg);
+}
+
+.auth-card h2 {
+  margin-bottom: var(--space-1);
+  font-size: var(--text-xl);
+}
+
+.auth-card > p {
+  margin-bottom: var(--space-6);
+  font-size: var(--text-sm);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.auth-form .btn {
+  margin-top: var(--space-2);
+  width: 100%;
+  justify-content: center;
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: var(--space-6);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.auth-footer a {
+  font-weight: var(--weight-medium);
+}
+
+/* Subtle decorative element */
+.auth-decoration {
+  position: fixed;
+  top: -200px;
+  right: -200px;
+  width: 500px;
+  height: 500px;
+  background: var(--color-accent-light);
+  border-radius: 50%;
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.auth-decoration-2 {
+  position: fixed;
+  bottom: -150px;
+  left: -150px;
+  width: 400px;
+  height: 400px;
+  background: var(--color-surface);
+  border-radius: 50%;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.auth-container {
+  position: relative;
+  z-index: 1;
+}
