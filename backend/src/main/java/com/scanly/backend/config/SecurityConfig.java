@@ -1,29 +1,40 @@
 package com.scanly.backend.config;
 
+import com.scanly.backend.security.JwtAuthFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * Security Configuration.
  *
- * FOR NOW (Feature 1): All endpoints are open — no authentication required.
- * This lets us test the health endpoint without dealing with JWT yet.
+ * Now locked down with JWT authentication (Feature 3).
  *
- * In Feature 3 (Auth), we'll lock this down to require JWT tokens
- * on all endpoints except /api/v1/auth/** and /api/v1/health.
+ * PUBLIC endpoints (no token needed):
+ *   - /api/v1/auth/**  (register, login)
+ *   - /api/v1/health   (health check)
+ *
+ * PROTECTED endpoints (require valid JWT):
+ *   - Everything else under /api/v1/**
  */
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthFilter jwtAuthFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF — we're a stateless REST API using JWT, not cookies
+            // Disable CSRF — we're a stateless REST API using JWT
             .csrf(csrf -> csrf.disable())
 
             // Stateless sessions — no server-side session storage
@@ -31,11 +42,27 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
 
-            // TEMPORARY: Allow all requests (will be locked down in Feature 3)
-            .authorizeHttpRequests(auth ->
-                auth.anyRequest().permitAll()
-            );
+            // Endpoint authorization rules
+            .authorizeHttpRequests(auth -> auth
+                // Public endpoints — no JWT required
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/api/v1/health").permitAll()
+                // Everything else requires authentication
+                .anyRequest().authenticated()
+            )
+
+            // Add our JWT filter BEFORE Spring's default auth filter
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * BCrypt password encoder — used to hash passwords before storing in DB.
+     * BCrypt automatically handles salting and is resistant to brute-force attacks.
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
