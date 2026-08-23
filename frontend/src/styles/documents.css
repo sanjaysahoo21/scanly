@@ -2,6 +2,88 @@
    Documents Pages — List, Upload, Detail
    ============================================ */
 
+/* --- Upload Status Banner --- */
+.upload-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: var(--space-5);
+}
+.upload-status-success {
+  background: rgba(72, 199, 142, 0.1);
+  color: #48c78e;
+  border: 1px solid rgba(72, 199, 142, 0.3);
+}
+.upload-status-error {
+  background: rgba(229, 62, 62, 0.08);
+  color: #e53e3e;
+  border: 1px solid rgba(229, 62, 62, 0.3);
+}
+
+/* --- Upload Result --- */
+.upload-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.upload-jobs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.upload-job-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.upload-job-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+.upload-job-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.upload-job-id {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-family: monospace;
+}
+.upload-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+.upload-actions button {
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+.upload-actions button:hover { opacity: 0.85; }
+.upload-actions .btn-primary {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+.upload-actions .btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
 /* --- File Uploader --- */
 .file-uploader {
   display: flex;
@@ -84,7 +166,14 @@
   background: var(--color-bg);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: visible;
+}
+
+.file-list-actions {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-bg-alt);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .file-list-header {
@@ -222,3 +311,18 @@
   color: var(--color-accent);
   border-color: var(--color-accent);
 }
+
+/* --- Status Badges --- */
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.status-pending  { background: rgba(246,173,85,0.15);  color: #f6ad55; }
+.status-processing { background: rgba(66,153,225,0.15); color: #4299e1; }
+.status-completed { background: rgba(72,199,142,0.15); color: #48c78e; }
+.status-failed  { background: rgba(229,62,62,0.12);  color: #e53e3e; }

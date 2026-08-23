@@ -6,7 +6,7 @@ import '../../styles/documents.css'
 const ACCEPTED_TYPES = ['.pdf', '.jpg', '.jpeg', '.png']
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
 
-function FileUploader({ onUpload }) {
+function FileUploader({ onUpload, uploading = false }) {
   const [files, setFiles] = useState([])
   const [dragActive, setDragActive] = useState(false)
   const inputRef = useRef(null)
@@ -159,8 +159,9 @@ function FileUploader({ onUpload }) {
                 icon={Upload}
                 onClick={handleUpload}
                 id="upload-button"
+                disabled={uploading}
               >
-                Upload {validFiles.length} {validFiles.length === 1 ? 'File' : 'Files'}
+                {uploading ? 'Uploading...' : `Upload ${validFiles.length} ${validFiles.length === 1 ? 'File' : 'Files'}`}
               </Button>
             </div>
           )}
