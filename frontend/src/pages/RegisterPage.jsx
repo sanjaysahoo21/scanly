@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Input from '../components/common/Input.jsx'
 import Button from '../components/common/Button.jsx'
+import { register } from '../services/authService.js'
 import '../styles/auth.css'
 
 function RegisterPage() {
@@ -11,16 +12,31 @@ function RegisterPage() {
     password: '',
     organization_name: '',
   })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // TODO: Wire to auth API
-    navigate('/')
+    setError('')
+    setLoading(true)
+    try {
+      await register({
+        email: form.email,
+        password: form.password,
+        fullName: form.full_name,
+        organizationName: form.organization_name,
+      })
+      navigate('/')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -73,8 +89,9 @@ function RegisterPage() {
               onChange={handleChange('organization_name')}
               required
             />
-            <Button type="submit" variant="primary" size="lg" id="register-button">
-              Create Account
+            {error && <p className="auth-error">{error}</p>}
+            <Button type="submit" variant="primary" size="lg" id="register-button" disabled={loading}>
+              {loading ? 'Creating account...' : 'Create Account'}
             </Button>
           </form>
 

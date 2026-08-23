@@ -2,17 +2,28 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Input from '../components/common/Input.jsx'
 import Button from '../components/common/Button.jsx'
+import { login } from '../services/authService.js'
 import '../styles/auth.css'
 
 function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // TODO: Wire to auth API
-    navigate('/')
+    setError('')
+    setLoading(true)
+    try {
+      await login({ email, password })
+      navigate('/')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -49,8 +60,9 @@ function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <Button type="submit" variant="primary" size="lg" id="login-button">
-              Sign In
+            {error && <p className="auth-error">{error}</p>}
+            <Button type="submit" variant="primary" size="lg" id="login-button" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
 
