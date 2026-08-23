@@ -1,5 +1,6 @@
 package com.scanly.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.scanly.backend.entity.enums.DocumentStatus;
 import com.scanly.backend.entity.enums.FileType;
 import jakarta.persistence.*;
@@ -26,6 +27,7 @@ import java.util.UUID;
     @Index(name = "idx_documents_uploaded_by", columnList = "uploaded_by"),
     @Index(name = "idx_documents_created_at", columnList = "created_at")
 })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "organization", "aiRawResponse", "rawExtractedText"})
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor

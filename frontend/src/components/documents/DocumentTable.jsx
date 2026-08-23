@@ -38,20 +38,20 @@ function DocumentTable({ documents = [] }) {
               <td>
                 <div className="doc-name-cell">
                   <FileText size={16} strokeWidth={1.8} />
-                  <span>{doc.file_name}</span>
+                  <span>{doc.fileName}</span>
                 </div>
               </td>
-              <td>{doc.file_type}</td>
+              <td>{doc.fileType}</td>
               <td>
                 <StatusBadge status={doc.status} />
               </td>
               <td>
-                {doc.confidence_score != null
-                  ? `${(doc.confidence_score * 100).toFixed(0)}%`
+                {doc.confidenceScore != null
+                  ? `${(doc.confidenceScore * 100).toFixed(0)}%`
                   : '—'}
               </td>
-              <td>{doc.uploaded_by}</td>
-              <td>{doc.created_at ? new Date(doc.created_at).toLocaleDateString() : '—'}</td>
+              <td>{doc.uploadedBy?.fullName || '—'}</td>
+              <td>{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '—'}</td>
               <td>
                 <button
                   className="doc-action-btn"
