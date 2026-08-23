@@ -4,7 +4,7 @@
  * Stores the JWT token in localStorage after login/register.
  */
 
-const BASE_URL = 'http://localhost:8080/api/v1'
+const BASE_URL = '/api/v1'
 
 /**
  * Register a new user + organization.

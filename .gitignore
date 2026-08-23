@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+backend/target/
+frontend/node_modules/
+frontend/dist/
+
+# Uploads & Temp storage
+backend/uploads/
+uploads/
+*.tmp
+test_invoice.txt
+
+# IDE & OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

@@ -1,5 +1,6 @@
 package com.scanly.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.scanly.backend.entity.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
@@ -20,6 +21,7 @@ import java.util.UUID;
     @Index(name = "idx_users_organization", columnList = "organization_id"),
     @Index(name = "idx_users_email", columnList = "email")
 })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "passwordHash", "organization"})
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
