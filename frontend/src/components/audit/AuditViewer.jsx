@@ -12,18 +12,19 @@ function AuditViewer({
   onSave,
   onApprove,
   onReprocess,
+  saving = false,
 }) {
   return (
     <div className="audit-viewer animate-fade-in">
       {/* Header */}
       <div className="audit-viewer-header">
         <div className="audit-viewer-header-left">
-          <h2>{document.file_name || 'Document'}</h2>
+          <h2>{document.fileName || 'Document'}</h2>
           <div className="audit-viewer-meta">
             <StatusBadge status={document.status || 'PENDING'} />
-            {document.confidence_score != null && (
+            {document.confidenceScore != null && (
               <span className="audit-confidence">
-                Confidence: {(document.confidence_score * 100).toFixed(0)}%
+                Confidence: {(document.confidenceScore * 100).toFixed(0)}%
               </span>
             )}
           </div>
@@ -59,11 +60,12 @@ function AuditViewer({
             invoice={invoice}
             onChange={onInvoiceChange}
             onSave={onSave}
+            saving={saving}
           />
           <LineItemsTable
-            items={invoice.line_items || []}
+            items={invoice.lineItems || []}
             onChange={(items) =>
-              onInvoiceChange && onInvoiceChange({ ...invoice, line_items: items })
+              onInvoiceChange && onInvoiceChange({ ...invoice, lineItems: items })
             }
           />
         </div>

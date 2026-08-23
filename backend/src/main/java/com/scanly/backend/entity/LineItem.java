@@ -1,5 +1,6 @@
 package com.scanly.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -18,6 +19,7 @@ import java.util.UUID;
 @Table(name = "line_items", indexes = {
     @Index(name = "idx_line_items_invoice", columnList = "invoice_id")
 })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "invoice"})
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
