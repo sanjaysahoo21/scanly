@@ -1,5 +1,6 @@
 package com.scanly.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.scanly.backend.entity.enums.AuditAction;
 import com.scanly.backend.entity.enums.EntityType;
 import jakarta.persistence.*;
@@ -23,6 +24,7 @@ import java.util.UUID;
     @Index(name = "idx_audit_logs_user", columnList = "user_id"),
     @Index(name = "idx_audit_logs_created_at", columnList = "created_at")
 })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "document", "invoice"})
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor

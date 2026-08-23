@@ -31,20 +31,20 @@ function AuditLogTable({ logs = [] }) {
         <tbody>
           {logs.map((log) => (
             <tr key={log.id}>
-              <td className="audit-user-cell">{log.user}</td>
+              <td className="audit-user-cell">{log.user?.fullName || '—'}</td>
               <td>
-                <span className="audit-entity-badge">{log.entity_type}</span>
+                <span className="audit-entity-badge">{log.entityType}</span>
               </td>
-              <td><code className="audit-field-name">{log.field_name}</code></td>
-              <td className="audit-old-value">{log.old_value || '—'}</td>
-              <td className="audit-new-value">{log.new_value || '—'}</td>
+              <td><code className="audit-field-name">{log.fieldName}</code></td>
+              <td className="audit-old-value">{log.oldValue || '—'}</td>
+              <td className="audit-new-value">{log.newValue || '—'}</td>
               <td>
                 <span className={`audit-action audit-action-${log.action?.toLowerCase()}`}>
                   {log.action}
                 </span>
               </td>
               <td className="audit-time">
-                {log.created_at ? new Date(log.created_at).toLocaleString() : '—'}
+                {log.createdAt ? new Date(log.createdAt).toLocaleString() : '—'}
               </td>
             </tr>
           ))}
