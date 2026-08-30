@@ -28,6 +28,16 @@ function DocumentsPage() {
     fetchDocuments()
   }, [])
 
+  // Auto-poll every 5s when any document is still processing
+  useEffect(() => {
+    const hasPending = documents.some(
+      (d) => d.status === 'PENDING' || d.status === 'PROCESSING'
+    )
+    if (!hasPending) return
+    const interval = setInterval(fetchDocuments, 5000)
+    return () => clearInterval(interval)
+  }, [documents])
+
   // Apply status filter client-side
   const filtered = statusFilter
     ? documents.filter((d) => d.status === statusFilter)

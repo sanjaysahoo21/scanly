@@ -1,9 +1,9 @@
-import { Upload, X, FileText, Image } from 'lucide-react'
+import { Upload, X, FileText } from 'lucide-react'
 import { useState, useRef } from 'react'
 import Button from '../common/Button.jsx'
 import '../../styles/documents.css'
 
-const ACCEPTED_TYPES = ['.pdf', '.jpg', '.jpeg', '.png']
+const ACCEPTED_TYPES = ['.pdf']
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
 
 function FileUploader({ onUpload, uploading = false }) {
@@ -69,7 +69,6 @@ function FileUploader({ onUpload, uploading = false }) {
 
   const getFileIcon = (fileName) => {
     const ext = fileName.split('.').pop().toLowerCase()
-    if (['jpg', 'jpeg', 'png'].includes(ext)) return Image
     return FileText
   }
 
@@ -96,7 +95,7 @@ function FileUploader({ onUpload, uploading = false }) {
           ref={inputRef}
           type="file"
           multiple
-          accept=".pdf,.jpg,.jpeg,.png"
+          accept=".pdf,application/pdf"
           onChange={handleInputChange}
           className="drop-zone-input"
           id="file-input"
