@@ -49,13 +49,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            // No token → continue without authentication (public endpoints will work)
             filterChain.doFilter(request, response);
             return;
         }
 
         // 2. Extract and validate the token
-        String token = authHeader.substring(7); // Remove "Bearer " prefix
+        String token = authHeader.substring(7);
 
         if (!jwtUtil.validateToken(token)) {
             filterChain.doFilter(request, response);
