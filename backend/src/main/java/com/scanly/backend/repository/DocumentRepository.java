@@ -5,6 +5,7 @@ import com.scanly.backend.entity.Organization;
 import com.scanly.backend.entity.enums.DocumentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -22,9 +23,11 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     long countByOrganizationIdAndStatus(UUID organizationId, DocumentStatus status);
 
     // Used by DocumentService.getDocumentsByOrganization()
+    @EntityGraph(attributePaths = {"uploadedBy"})
     List<Document> findByOrganizationOrderByCreatedAtDesc(Organization organization);
 
     // Used by DocumentService.getDocumentById() — ensures org-level isolation
+    @EntityGraph(attributePaths = {"uploadedBy"})
     Optional<Document> findByIdAndOrganization(UUID id, Organization organization);
 
     // Used by DashboardService — count docs by status for an org
@@ -34,5 +37,9 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     long countByOrganization(Organization organization);
 
     // 5 most recent documents for the dashboard preview
+    @EntityGraph(attributePaths = {"uploadedBy"})
     List<Document> findTop5ByOrganizationOrderByCreatedAtDesc(Organization organization);
+
+    // Count all by organization id (used by Dashboard to avoid lazy-loading Organization object)
+    long countByOrganizationId(UUID organizationId);
 }

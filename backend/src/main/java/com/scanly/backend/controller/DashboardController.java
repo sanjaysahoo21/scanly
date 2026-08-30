@@ -1,12 +1,14 @@
 package com.scanly.backend.controller;
 
 import com.scanly.backend.dto.DashboardStatsDto;
+import com.scanly.backend.entity.Organization;
 import com.scanly.backend.entity.User;
 import com.scanly.backend.entity.enums.DocumentStatus;
 import com.scanly.backend.repository.DocumentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,6 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * GET /api/v1/dashboard/stats — returns document counts and recent files
  *   for the logged-in user's organization.
+ *
+ * @Transactional(readOnly=true) keeps the Hibernate session open so that
+ * lazy-loaded associations (Organization, uploadedBy) serialize correctly.
  */
 @RestController
 @RequestMapping("/api/v1/dashboard")
@@ -25,10 +30,11 @@ public class DashboardController {
     private final DocumentRepository documentRepository;
 
     @GetMapping("/stats")
+    @Transactional(readOnly = true)
     public ResponseEntity<DashboardStatsDto> getStats(
         @AuthenticationPrincipal User currentUser
     ) {
-        var org = currentUser.getOrganization();
+        Organization org = currentUser.getOrganization();
 
         DashboardStatsDto stats = DashboardStatsDto.builder()
             .totalDocuments(documentRepository.countByOrganization(org))
