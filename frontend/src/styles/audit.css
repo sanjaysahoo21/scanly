@@ -62,6 +62,89 @@
   max-width: 280px;
 }
 
+/* --- Tab Bar --- */
+.audit-tabs {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-1);
+}
+
+.audit-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.audit-tab:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.audit-tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.audit-tab-active {
+  color: var(--color-primary) !important;
+  border-bottom-color: var(--color-primary) !important;
+  background: transparent !important;
+}
+
+/* --- Preview Panel (full-width PDF) --- */
+.audit-preview-panel {
+  width: 100%;
+  height: calc(100vh - 260px);
+  min-height: 500px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  display: flex;
+  align-items: stretch;
+}
+
+.pdf-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* --- Form Panel --- */
+.audit-form-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .audit-preview-panel {
+    height: 60vh;
+    min-height: 350px;
+  }
+}
+
+/* Remove old split-panel rules if any */
+.split-panel,
+.split-panel-left,
+.split-panel-right {
+  all: unset;
+}
+
 /* --- Audit Log Table Extras --- */
 .audit-user-cell {
   font-weight: var(--weight-medium);
