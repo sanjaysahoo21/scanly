@@ -16,7 +16,7 @@ function LineItemsTable({ items = [], onChange, readOnly = false }) {
     if (onChange) {
       onChange([
         ...items,
-        { description: '', hsn_code: '', quantity: 1, unit_price: 0, tax_rate: 0, total_price: 0 },
+        { description: '', hsnCode: '', quantity: 1, unitPrice: 0, taxRate: 0, totalPrice: 0 },
       ])
     }
   }
@@ -78,8 +78,8 @@ function LineItemsTable({ items = [], onChange, readOnly = false }) {
                 <td>
                   <input
                     className="line-item-input line-item-sm"
-                    value={item.hsn_code || ''}
-                    onChange={(e) => handleItemChange(index, 'hsn_code', e.target.value)}
+                    value={item.hsnCode || ''}
+                    onChange={(e) => handleItemChange(index, 'hsnCode', e.target.value)}
                     disabled={readOnly}
                     placeholder="HSN"
                   />
@@ -97,8 +97,8 @@ function LineItemsTable({ items = [], onChange, readOnly = false }) {
                   <input
                     className="line-item-input line-item-num"
                     type="number"
-                    value={item.unit_price || ''}
-                    onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
+                    value={item.unitPrice || ''}
+                    onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
                     disabled={readOnly}
                   />
                 </td>
@@ -106,8 +106,8 @@ function LineItemsTable({ items = [], onChange, readOnly = false }) {
                   <input
                     className="line-item-input line-item-num"
                     type="number"
-                    value={item.tax_rate || ''}
-                    onChange={(e) => handleItemChange(index, 'tax_rate', e.target.value)}
+                    value={item.taxRate || ''}
+                    onChange={(e) => handleItemChange(index, 'taxRate', e.target.value)}
                     disabled={readOnly}
                   />
                 </td>
@@ -115,8 +115,8 @@ function LineItemsTable({ items = [], onChange, readOnly = false }) {
                   <input
                     className="line-item-input line-item-num"
                     type="number"
-                    value={item.total_price || ''}
-                    onChange={(e) => handleItemChange(index, 'total_price', e.target.value)}
+                    value={item.totalPrice || ''}
+                    onChange={(e) => handleItemChange(index, 'totalPrice', e.target.value)}
                     disabled={readOnly}
                   />
                 </td>

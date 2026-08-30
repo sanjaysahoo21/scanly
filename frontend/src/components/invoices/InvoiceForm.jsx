@@ -3,7 +3,7 @@ import Button from '../common/Button.jsx'
 import { Save } from 'lucide-react'
 import '../../styles/invoices.css'
 
-function InvoiceForm({ invoice = {}, onChange, onSave, readOnly = false }) {
+function InvoiceForm({ invoice = {}, onChange, onSave, readOnly = false, saving = false }) {
   const handleChange = (field) => (e) => {
     if (onChange) {
       onChange({ ...invoice, [field]: e.target.value })
@@ -18,8 +18,8 @@ function InvoiceForm({ invoice = {}, onChange, onSave, readOnly = false }) {
           <Input
             label="Invoice Number"
             id="invoice-number"
-            value={invoice.invoice_number || ''}
-            onChange={handleChange('invoice_number')}
+            value={invoice.invoiceNumber || ''}
+            onChange={handleChange('invoiceNumber')}
             disabled={readOnly}
             placeholder="e.g. INV-2026-0891"
           />
@@ -27,16 +27,16 @@ function InvoiceForm({ invoice = {}, onChange, onSave, readOnly = false }) {
             label="Invoice Date"
             id="invoice-date"
             type="date"
-            value={invoice.invoice_date || ''}
-            onChange={handleChange('invoice_date')}
+            value={invoice.invoiceDate || ''}
+            onChange={handleChange('invoiceDate')}
             disabled={readOnly}
           />
           <Input
             label="Due Date"
             id="due-date"
             type="date"
-            value={invoice.due_date || ''}
-            onChange={handleChange('due_date')}
+            value={invoice.dueDate || ''}
+            onChange={handleChange('dueDate')}
             disabled={readOnly}
           />
           <Input
@@ -55,16 +55,16 @@ function InvoiceForm({ invoice = {}, onChange, onSave, readOnly = false }) {
           <Input
             label="Vendor Name"
             id="vendor-name"
-            value={invoice.vendor_name || ''}
-            onChange={handleChange('vendor_name')}
+            value={invoice.vendorName || ''}
+            onChange={handleChange('vendorName')}
             disabled={readOnly}
             placeholder="Vendor name"
           />
           <Input
             label="Vendor GSTIN"
             id="vendor-gstin"
-            value={invoice.vendor_gstin || ''}
-            onChange={handleChange('vendor_gstin')}
+            value={invoice.vendorGstin || ''}
+            onChange={handleChange('vendorGstin')}
             disabled={readOnly}
             placeholder="GSTIN"
           />
@@ -72,8 +72,8 @@ function InvoiceForm({ invoice = {}, onChange, onSave, readOnly = false }) {
         <Input
           label="Vendor Address"
           id="vendor-address"
-          value={invoice.vendor_address || ''}
-          onChange={handleChange('vendor_address')}
+          value={invoice.vendorAddress || ''}
+          onChange={handleChange('vendorAddress')}
           disabled={readOnly}
           placeholder="Full address"
           className="invoice-form-full-width"
@@ -86,16 +86,16 @@ function InvoiceForm({ invoice = {}, onChange, onSave, readOnly = false }) {
           <Input
             label="Buyer Name"
             id="buyer-name"
-            value={invoice.buyer_name || ''}
-            onChange={handleChange('buyer_name')}
+            value={invoice.buyerName || ''}
+            onChange={handleChange('buyerName')}
             disabled={readOnly}
             placeholder="Buyer name"
           />
           <Input
             label="Buyer GSTIN"
             id="buyer-gstin"
-            value={invoice.buyer_gstin || ''}
-            onChange={handleChange('buyer_gstin')}
+            value={invoice.buyerGstin || ''}
+            onChange={handleChange('buyerGstin')}
             disabled={readOnly}
             placeholder="GSTIN"
           />
@@ -103,8 +103,8 @@ function InvoiceForm({ invoice = {}, onChange, onSave, readOnly = false }) {
         <Input
           label="Buyer Address"
           id="buyer-address"
-          value={invoice.buyer_address || ''}
-          onChange={handleChange('buyer_address')}
+          value={invoice.buyerAddress || ''}
+          onChange={handleChange('buyerAddress')}
           disabled={readOnly}
           placeholder="Full address"
           className="invoice-form-full-width"
@@ -127,8 +127,8 @@ function InvoiceForm({ invoice = {}, onChange, onSave, readOnly = false }) {
             label="Tax Amount"
             id="tax-amount"
             type="number"
-            value={invoice.tax_amount || ''}
-            onChange={handleChange('tax_amount')}
+            value={invoice.taxAmount || ''}
+            onChange={handleChange('taxAmount')}
             disabled={readOnly}
             placeholder="0.00"
           />
@@ -136,8 +136,8 @@ function InvoiceForm({ invoice = {}, onChange, onSave, readOnly = false }) {
             label="Discount"
             id="discount"
             type="number"
-            value={invoice.discount_amount || ''}
-            onChange={handleChange('discount_amount')}
+            value={invoice.discountAmount || ''}
+            onChange={handleChange('discountAmount')}
             disabled={readOnly}
             placeholder="0.00"
           />
@@ -145,8 +145,8 @@ function InvoiceForm({ invoice = {}, onChange, onSave, readOnly = false }) {
             label="Total Amount"
             id="total-amount"
             type="number"
-            value={invoice.total_amount || ''}
-            onChange={handleChange('total_amount')}
+            value={invoice.totalAmount || ''}
+            onChange={handleChange('totalAmount')}
             disabled={readOnly}
             placeholder="0.00"
           />
@@ -155,8 +155,8 @@ function InvoiceForm({ invoice = {}, onChange, onSave, readOnly = false }) {
 
       {!readOnly && onSave && (
         <div className="invoice-form-actions">
-          <Button variant="primary" icon={Save} onClick={onSave} id="save-button">
-            Save Changes
+          <Button variant="primary" icon={Save} onClick={onSave} id="save-button" disabled={saving}>
+            {saving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
       )}
