@@ -88,4 +88,19 @@ public class DocumentDetailController {
             })
             .orElse(ResponseEntity.notFound().build());
     }
+
+    /**
+     * Reprocess a document on-demand.
+     */
+    @PostMapping("/{id}/reprocess")
+    public ResponseEntity<?> reprocessDocument(
+        @PathVariable UUID id,
+        @AuthenticationPrincipal User currentUser
+    ) {
+        boolean triggered = documentService.reprocessDocument(id, currentUser);
+        if (triggered) {
+            return ResponseEntity.ok(Map.of("message", "Reprocessing started", "documentId", id));
+        }
+        return ResponseEntity.notFound().build();
+    }
 }

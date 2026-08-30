@@ -51,7 +51,6 @@ public class DocumentService {
         "application/pdf", "image/jpeg", "image/png", "image/jpg"
     );
 
-    @Transactional
     public UploadResponse uploadDocuments(List<MultipartFile> files, User currentUser) throws IOException {
         Organization org = currentUser.getOrganization();
         List<DocumentJobDto> jobs = new ArrayList<>();
@@ -103,10 +102,10 @@ public class DocumentService {
                 .status(DocumentStatus.PENDING)
                 .build();
 
-            document = documentRepository.save(document);
+            document = documentRepository.saveAndFlush(document);
 
-            // Trigger async AI/OCR processing in background
-            processingService.processDocument(document);
+            // Trigger async AI/OCR processing in background with ID
+            processingService.processDocument(document.getId());
             log.info("Queued document {} for AI processing", document.getId());
 
             jobs.add(DocumentJobDto.builder()
@@ -122,6 +121,18 @@ public class DocumentService {
             .totalFiles(jobs.size())
             .jobs(jobs)
             .build();
+    }
+
+    /**
+     * Trigger reprocessing for an existing document.
+     */
+    public boolean reprocessDocument(UUID documentId, User currentUser) {
+        Optional<Document> docOpt = getDocumentById(documentId, currentUser);
+        if (docOpt.isPresent()) {
+            processingService.processDocument(documentId);
+            return true;
+        }
+        return false;
     }
 
     /**

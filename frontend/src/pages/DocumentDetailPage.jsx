@@ -72,9 +72,30 @@ function DocumentDetailPage() {
     alert('Approve feature coming soon!')
   }
 
-  const handleReprocess = () => {
-    // TODO: Feature 9 — reprocess endpoint
-    alert('Reprocess feature coming soon!')
+  const handleReprocess = async () => {
+    setSaveMsg('Reprocessing started...')
+    try {
+      const token = getToken()
+      const res = await fetch(`/api/v1/documents/${id}/reprocess`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        setSaveMsg('Reprocessing queued. Refreshing in 3 seconds...')
+        setTimeout(() => {
+          fetchDocumentDetail(id).then(({ document, invoice, auditLogs }) => {
+            setDocument(document)
+            setInvoice(invoice || {})
+            setAuditLogs(auditLogs || [])
+            setSaveMsg('')
+          })
+        }, 3000)
+      } else {
+        setSaveMsg('Failed to trigger reprocessing')
+      }
+    } catch (err) {
+      setSaveMsg('Error: ' + err.message)
+    }
   }
 
   if (loading) {

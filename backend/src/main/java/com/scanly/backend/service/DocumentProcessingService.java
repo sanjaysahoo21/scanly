@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * DocumentProcessingService
@@ -49,16 +50,22 @@ public class DocumentProcessingService {
 
     /**
      * Process a single document asynchronously.
-     * Called right after a document is saved to disk in DocumentService.
+     * Takes documentId to ensure clean transaction isolation across async threads.
      */
     @Async
     @Transactional
-    public void processDocument(Document document) {
+    public void processDocument(UUID documentId) {
+        Document document = documentRepository.findById(documentId).orElse(null);
+        if (document == null) {
+            log.warn("Cannot process document: ID {} not found", documentId);
+            return;
+        }
+
         log.info("Starting AI processing for document: {} ({})", document.getFileName(), document.getId());
 
         // Step 1: Mark as PROCESSING
         document.setStatus(DocumentStatus.PROCESSING);
-        documentRepository.save(document);
+        documentRepository.saveAndFlush(document);
 
         try {
             // Step 2: Read the file from disk & call Groq AI extraction
