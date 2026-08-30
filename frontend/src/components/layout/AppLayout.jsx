@@ -2,12 +2,12 @@ import { Outlet } from 'react-router-dom'
 import Navbar from './Navbar.jsx'
 import '../../styles/layout.css'
 
-function AppLayout() {
+function AppLayout({ children }) {
   return (
     <div className="app-shell">
       <Navbar />
       <main className="app-main">
-        <Outlet />
+        {children || <Outlet />}
       </main>
     </div>
   )

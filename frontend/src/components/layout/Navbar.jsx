@@ -1,6 +1,7 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Sun, Moon, Bell, User, Search, Command } from 'lucide-react'
 import { useTheme } from '../../context/ThemeContext.jsx'
+import { logout } from '../../services/authService.js'
 import '../../styles/layout.css'
 
 const navItems = [
@@ -14,6 +15,12 @@ const navItems = [
 function Navbar() {
   const { theme, toggleTheme } = useTheme()
   const location = useLocation()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <nav className="topnav">
@@ -74,7 +81,7 @@ function Navbar() {
               <Bell size={16} strokeWidth={2} />
             </button>
 
-            <button className="topnav-avatar-btn" id="user-menu-btn">
+            <button className="topnav-avatar-btn" id="user-menu-btn" onClick={handleLogout} title="Sign out" aria-label="Sign out">
               <div className="topnav-avatar">
                 <User size={14} strokeWidth={2} />
               </div>

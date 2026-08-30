@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
@@ -9,6 +9,13 @@ import DocumentDetailPage from './pages/DocumentDetailPage.jsx'
 import InvoicesPage from './pages/InvoicesPage.jsx'
 import InvoiceDetailPage from './pages/InvoiceDetailPage.jsx'
 import AuditLogsPage from './pages/AuditLogsPage.jsx'
+import { isLoggedIn } from './services/authService.js'
+
+function ProtectedLayout() {
+  const location = useLocation()
+  if (!isLoggedIn()) return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  return <AppLayout><Outlet /></AppLayout>
+}
 
 function App() {
   return (
@@ -19,7 +26,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
 
         {/* Protected routes — wrapped in AppLayout */}
-        <Route element={<AppLayout />}>
+        <Route element={<ProtectedLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/documents/upload" element={<DocumentUploadPage />} />

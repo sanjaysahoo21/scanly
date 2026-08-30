@@ -84,12 +84,22 @@ export function getToken() {
  */
 export function getUser() {
   const user = localStorage.getItem('user')
-  return user ? JSON.parse(user) : null
+  try {
+    return user ? JSON.parse(user) : null
+  } catch {
+    logout()
+    return null
+  }
 }
 
 /**
  * Check if the user is currently logged in.
  */
 export function isLoggedIn() {
-  return !!getToken()
+  const user = getUser()
+  if (!getToken() || !user?.expiresAt || new Date(user.expiresAt).getTime() <= Date.now()) {
+    logout()
+    return false
+  }
+  return true
 }
