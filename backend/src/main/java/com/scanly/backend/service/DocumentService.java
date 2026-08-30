@@ -47,16 +47,19 @@ public class DocumentService {
     private String uploadDir;
 
     private static final long MAX_FILE_SIZE = 10L * 1024 * 1024; // 10MB
-    private static final List<String> ALLOWED_TYPES = List.of(
-        "application/pdf", "image/jpeg", "image/png", "image/jpg"
-    );
+    private static final int MAX_FILES_PER_REQUEST = 10;
 
     public UploadResponse uploadDocuments(List<MultipartFile> files, User currentUser) throws IOException {
+        if (files.size() > MAX_FILES_PER_REQUEST) {
+            throw new IllegalArgumentException("A maximum of " + MAX_FILES_PER_REQUEST + " files may be uploaded at once");
+        }
         Organization org = currentUser.getOrganization();
         List<DocumentJobDto> jobs = new ArrayList<>();
 
-        // Create org-specific upload directory: ./uploads/<orgId>/
-        Path orgUploadPath = Paths.get(uploadDir, org.getId().toString());
+        // Create org-specific upload directory (always resolve to absolute to avoid
+        // normalization mismatches in the path-traversal check below)
+        Path orgUploadPath = Paths.get(uploadDir, org.getId().toString())
+                .toAbsolutePath().normalize();
         Files.createDirectories(orgUploadPath);
 
         for (MultipartFile file : files) {
@@ -64,7 +67,7 @@ public class DocumentService {
             if (file.isEmpty()) continue;
 
             String contentType = file.getContentType();
-            if (!ALLOWED_TYPES.contains(contentType)) {
+            if (!isPdf(file)) {
                 log.warn("Rejected file '{}' — unsupported type: {}", file.getOriginalFilename(), contentType);
                 continue;
             }
@@ -75,21 +78,21 @@ public class DocumentService {
             }
 
             // Generate unique file name to avoid collisions
-            String originalName = file.getOriginalFilename();
-            String storedFileName = UUID.randomUUID() + "_" + originalName;
-            Path filePath = orgUploadPath.resolve(storedFileName);
+            String originalName = safeFileName(file.getOriginalFilename());
+            String storedFileName = UUID.randomUUID() + ".pdf";
+            Path filePath = orgUploadPath.resolve(storedFileName).toAbsolutePath().normalize();
+            if (!filePath.startsWith(orgUploadPath)) {
+                throw new IOException("Invalid upload path: potential path traversal detected");
+            }
 
             // Save file to disk
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            try (var input = file.getInputStream()) {
+                Files.copy(input, filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
             log.info("Saved file: {}", filePath);
 
             // Determine FileType enum from content type
-            FileType fileType = switch (contentType) {
-                case "application/pdf" -> FileType.PDF;
-                case "image/jpeg", "image/jpg" -> FileType.IMAGE;
-                case "image/png" -> FileType.IMAGE;
-                default -> FileType.TEXT;
-            };
+            FileType fileType = FileType.PDF;
 
             // Create Document record in DB with status PENDING
             Document document = Document.builder()
@@ -147,5 +150,20 @@ public class DocumentService {
      */
     public Optional<Document> getDocumentById(UUID id, User currentUser) {
         return documentRepository.findByIdAndOrganization(id, currentUser.getOrganization());
+    }
+
+    private boolean isPdf(MultipartFile file) throws IOException {
+        if (file.isEmpty() || file.getSize() > MAX_FILE_SIZE) return false;
+        try (var input = file.getInputStream()) {
+            byte[] header = input.readNBytes(5);
+            return header.length == 5 && header[0] == '%' && header[1] == 'P'
+                && header[2] == 'D' && header[3] == 'F' && header[4] == '-';
+        }
+    }
+
+    private String safeFileName(String originalName) {
+        if (originalName == null || originalName.isBlank()) return "document.pdf";
+        String name = Paths.get(originalName).getFileName().toString();
+        return name.replaceAll("[\\r\\n\\x00]", "_");
     }
 }

@@ -84,6 +84,11 @@ public class GroqAiService {
      */
     public String extractAndStructureInvoice(Path filePath, String fileName) throws IOException {
         String documentText = extractRawText(filePath, fileName);
+        final int maxCharacters = 100_000;
+        if (documentText.length() > maxCharacters) {
+            documentText = documentText.substring(0, maxCharacters);
+            log.warn("Truncated extracted text from {} to {} characters", fileName, maxCharacters);
+        }
         log.info("Extracted {} characters of raw text from {}", documentText.length(), fileName);
 
         if (documentText.isBlank()) {
@@ -122,7 +127,6 @@ public class GroqAiService {
             .path("content")
             .asText();
 
-        log.debug("Groq structured output: {}", structuredJson);
         return structuredJson.trim();
     }
 
@@ -137,9 +141,8 @@ public class GroqAiService {
                     PDFTextStripper stripper = new PDFTextStripper();
                     return stripper.getText(document).trim();
                 }
-            } else {
-                return Files.readString(filePath).trim();
             }
+            throw new IOException("Only PDF extraction is configured");
         } catch (Exception e) {
             log.warn("Could not extract raw text from {}: {}", fileName, e.getMessage());
             return "";

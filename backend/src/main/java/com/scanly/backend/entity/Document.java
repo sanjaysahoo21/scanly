@@ -1,6 +1,7 @@
 package com.scanly.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.scanly.backend.entity.enums.DocumentStatus;
 import com.scanly.backend.entity.enums.FileType;
 import jakarta.persistence.*;
@@ -49,6 +50,7 @@ public class Document {
     @Column(name = "file_name", nullable = false, length = 500)
     private String fileName;
 
+    @JsonIgnore
     @Column(name = "file_path", nullable = false, length = 1000)
     private String filePath;
 

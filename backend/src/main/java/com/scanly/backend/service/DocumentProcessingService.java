@@ -53,8 +53,22 @@ public class DocumentProcessingService {
      * Takes documentId to ensure clean transaction isolation across async threads.
      */
     @Async
-    @Transactional
     public void processDocument(UUID documentId) {
+        try {
+            doProcessDocument(documentId);
+        } catch (Exception e) {
+            log.error("Unhandled error processing document {}: {}", documentId, e.getMessage(), e);
+            markFailed(documentId, e.getMessage());
+        }
+    }
+
+    /**
+     * Inner method that does the actual processing in its own transaction.
+     * If this throws, the transaction rolls back — but the @Async wrapper
+     * above will catch it and call markFailed() in a separate new transaction.
+     */
+    @Transactional
+    public void doProcessDocument(UUID documentId) {
         Document document = documentRepository.findById(documentId).orElse(null);
         if (document == null) {
             log.warn("Cannot process document: ID {} not found", documentId);
@@ -67,23 +81,30 @@ public class DocumentProcessingService {
         document.setStatus(DocumentStatus.PROCESSING);
         documentRepository.saveAndFlush(document);
 
+        // Step 2: Read the file from disk & call Groq AI extraction
+        Path filePath = Path.of(document.getFilePath());
+        String rawJson;
         try {
-            // Step 2: Read the file from disk & call Groq AI extraction
-            Path filePath = Path.of(document.getFilePath());
-            String rawJson = groqAiService.extractAndStructureInvoice(filePath, document.getFileName());
+            rawJson = groqAiService.extractAndStructureInvoice(filePath, document.getFileName());
+        } catch (Exception e) {
+            log.error("AI extraction failed for document {}: {}", documentId, e.getMessage(), e);
+            document.setStatus(DocumentStatus.FAILED);
+            document.setErrorMessage(e.getMessage());
+            documentRepository.save(document);
+            return;
+        }
 
-            // Step 3: Parse and save invoice
+        // Step 3: Parse and save invoice
+        try {
             Invoice invoice = parseAndSaveInvoice(document, rawJson);
 
-            // Step 5: Update document with confidence score and status
+            // Step 4: Update document with confidence score and status
             document.setStatus(DocumentStatus.COMPLETED);
             document.setRawExtractedText(rawJson);
 
-            // Calculate a simple confidence score based on how many fields were filled
             double confidence = calculateConfidence(invoice);
             document.setConfidenceScore(BigDecimal.valueOf(confidence));
 
-            // If confidence is low, flag for review
             if (confidence < 0.6) {
                 document.setStatus(DocumentStatus.NEEDS_REVIEW);
                 log.warn("Document {} flagged for review (confidence: {})", document.getId(), confidence);
@@ -91,12 +112,25 @@ public class DocumentProcessingService {
 
             documentRepository.save(document);
             log.info("Successfully processed document: {} → status: {}", document.getId(), document.getStatus());
-
         } catch (Exception e) {
-            log.error("Failed to process document {}: {}", document.getId(), e.getMessage(), e);
+            log.error("Failed to parse/save invoice for document {}: {}", documentId, e.getMessage(), e);
             document.setStatus(DocumentStatus.FAILED);
+            document.setErrorMessage("Invoice parsing failed: " + e.getMessage());
             documentRepository.save(document);
         }
+    }
+
+    /**
+     * Mark a document as FAILED in a brand-new transaction so the status
+     * is always persisted even if the main transaction rolled back.
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void markFailed(UUID documentId, String reason) {
+        documentRepository.findById(documentId).ifPresent(doc -> {
+            doc.setStatus(DocumentStatus.FAILED);
+            doc.setErrorMessage(reason);
+            documentRepository.save(doc);
+        });
     }
 
     /**
@@ -111,27 +145,28 @@ public class DocumentProcessingService {
 
         JsonNode root = objectMapper.readTree(cleanJson);
 
-        // Build Invoice entity from extracted fields
-        Invoice invoice = Invoice.builder()
-            .document(document)
-            .invoiceNumber(textOrNull(root, "invoiceNumber"))
-            .vendorName(textOrNull(root, "vendorName"))
-            .vendorAddress(textOrNull(root, "vendorAddress"))
-            .vendorGstin(textOrNull(root, "vendorGstin"))
-            .buyerName(textOrNull(root, "buyerName"))
-            .buyerAddress(textOrNull(root, "buyerAddress"))
-            .buyerGstin(textOrNull(root, "buyerGstin"))
-            .invoiceDate(dateOrNull(root, "invoiceDate"))
-            .dueDate(dateOrNull(root, "dueDate"))
-            .subtotal(decimalOrNull(root, "subtotal"))
-            .taxAmount(decimalOrNull(root, "taxAmount"))
-            .discountAmount(decimalOrDefault(root, "discountAmount"))
-            .totalAmount(decimalOrNull(root, "totalAmount"))
-            .currency(currencyOrDefault(root, "currency"))
-            .isAudited(false)
-            .lineItems(new ArrayList<>())
-            .build();
+        // Check if an invoice already exists for this document to avoid unique constraint violations
+        Invoice invoice = invoiceRepository.findByDocumentId(document.getId()).orElse(new Invoice());
 
+        // Update Invoice entity from extracted fields
+        invoice.setDocument(document);
+        invoice.setInvoiceNumber(textOrNull(root, "invoiceNumber"));
+        invoice.setVendorName(textOrNull(root, "vendorName"));
+        invoice.setVendorAddress(textOrNull(root, "vendorAddress"));
+        invoice.setVendorGstin(textOrNull(root, "vendorGstin"));
+        invoice.setBuyerName(textOrNull(root, "buyerName"));
+        invoice.setBuyerAddress(textOrNull(root, "buyerAddress"));
+        invoice.setBuyerGstin(textOrNull(root, "buyerGstin"));
+        invoice.setInvoiceDate(dateOrNull(root, "invoiceDate"));
+        invoice.setDueDate(dateOrNull(root, "dueDate"));
+        invoice.setSubtotal(decimalOrNull(root, "subtotal"));
+        invoice.setTaxAmount(decimalOrNull(root, "taxAmount"));
+        invoice.setDiscountAmount(decimalOrDefault(root, "discountAmount"));
+        invoice.setTotalAmount(decimalOrNull(root, "totalAmount"));
+        invoice.setCurrency(currencyOrDefault(root, "currency"));
+        if (invoice.getId() == null) {
+            invoice.setIsAudited(false);
+        }
         // Save invoice first (needed for LineItem foreign key)
         invoice = invoiceRepository.save(invoice);
 
@@ -151,7 +186,8 @@ public class DocumentProcessingService {
                     .build();
                 lineItems.add(lineItem);
             }
-            invoice.setLineItems(lineItems);
+            invoice.getLineItems().clear();
+            invoice.getLineItems().addAll(lineItems);
             invoice = invoiceRepository.save(invoice);
         }
 

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -51,6 +52,9 @@ public class DocumentController {
 
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
 
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "INVALID_UPLOAD", "message", e.getMessage()));
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "UPLOAD_FAILED", "message", "Failed to save files: " + e.getMessage()));
@@ -58,6 +62,7 @@ public class DocumentController {
     }
 
     @GetMapping
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Document>> listDocuments(
         @AuthenticationPrincipal User currentUser
     ) {
@@ -66,6 +71,7 @@ public class DocumentController {
     }
 
     @GetMapping("/{id}")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getDocument(
         @PathVariable UUID id,
         @AuthenticationPrincipal User currentUser
