@@ -35,6 +35,9 @@ public class AuditLogController {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
+        if (page < 0 || size < 1 || size > 100) {
+            return ResponseEntity.badRequest().body(Map.of("error", "INVALID_PAGINATION", "message", "page must be non-negative and size must be 1-100"));
+        }
         var org = currentUser.getOrganization();
         Pageable pageable = PageRequest.of(page, size);
 
