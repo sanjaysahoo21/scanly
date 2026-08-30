@@ -10,6 +10,9 @@ uploads/
 *.tmp
 test_invoice.txt
 
+# NEVER commit secrets — use environment variables in production
+backend/src/main/resources/application.properties
+
 # IDE & OS files
 .idea/
 .vscode/

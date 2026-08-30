@@ -41,6 +41,7 @@ import java.util.UUID;
 public class DocumentService {
 
     private final DocumentRepository documentRepository;
+    private final DocumentProcessingService processingService;
 
     @Value("${scanly.upload-dir}")
     private String uploadDir;
@@ -103,6 +104,10 @@ public class DocumentService {
                 .build();
 
             document = documentRepository.save(document);
+
+            // Trigger async AI/OCR processing in background
+            processingService.processDocument(document);
+            log.info("Queued document {} for AI processing", document.getId());
 
             jobs.add(DocumentJobDto.builder()
                 .jobId(document.getId())

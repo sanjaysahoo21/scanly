@@ -92,6 +92,19 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Jackson — JSON parsing -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
+
+		<!-- Apache PDFBox — Local PDF text and metadata extraction -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>3.0.3</version>
+		</dependency>
 	</dependencies>
 
 	<build>

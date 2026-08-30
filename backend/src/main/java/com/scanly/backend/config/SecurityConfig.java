@@ -57,6 +57,8 @@ public class SecurityConfig {
                 // Public endpoints — no JWT required
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/api/v1/health").permitAll()
+                // Allow Spring's internal /error forwarding (used when validation fails, etc.)
+                .requestMatchers("/error").permitAll()
                 // Everything else requires authentication
                 .anyRequest().authenticated()
             )
