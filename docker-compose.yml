@@ -3,12 +3,12 @@ services:
     image: postgres:16
     container_name: scanly-db
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:-${DB_USERNAME:-postgres}}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-${DB_PASSWORD:-scanly123}}
-      - POSTGRES_DB=${POSTGRES_DB:-scanly}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
       - TZ=UTC
     ports:
-      - "5433:5432"
+      - "${DB_PORT:-5433}:5432"
     volumes:
       - scanly-db-data:/var/lib/postgresql/data
     restart: unless-stopped
