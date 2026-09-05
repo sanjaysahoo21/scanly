@@ -24,21 +24,16 @@ public class JwtUtil {
     private final SecretKey secretKey;
     private final long expirationMs;
 
-    private static final String DEFAULT_DEV_SECRET = "c2Nhbmx5LXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1zaWduaW5nLTIwMjY=";
-
     public JwtUtil(
-        @Value("${scanly.jwt.secret:c2Nhbmx5LXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1zaWduaW5nLTIwMjY=}") String secret,
+        @Value("${scanly.jwt.secret}") String secret,
         @Value("${scanly.jwt.expiration-ms:86400000}") long expirationMs
     ) {
-        String effectiveSecret = (secret != null && !secret.isBlank()) ? secret.trim() : DEFAULT_DEV_SECRET;
-        byte[] keyBytes;
-        try {
-            keyBytes = Base64.getDecoder().decode(effectiveSecret);
-        } catch (Exception e) {
-            keyBytes = Base64.getDecoder().decode(DEFAULT_DEV_SECRET);
+        if (secret == null || secret.trim().isEmpty()) {
+            throw new IllegalStateException("Missing JWT secret! Set SCANLY_JWT_SECRET in your .env file or environment.");
         }
-        if (keyBytes == null || keyBytes.length < 32) {
-            keyBytes = Base64.getDecoder().decode(DEFAULT_DEV_SECRET);
+        byte[] keyBytes = Base64.getDecoder().decode(secret.trim());
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException("SCANLY_JWT_SECRET must decode to at least 256 bits (32 bytes). Check .env file.");
         }
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
         this.expirationMs = expirationMs;
