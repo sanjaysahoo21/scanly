@@ -24,11 +24,23 @@ public class JwtUtil {
     private final SecretKey secretKey;
     private final long expirationMs;
 
+    private static final String DEFAULT_DEV_SECRET = "c2Nhbmx5LXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1zaWduaW5nLTIwMjY=";
+
     public JwtUtil(
-        @Value("${scanly.jwt.secret}") String secret,
-        @Value("${scanly.jwt.expiration-ms}") long expirationMs
+        @Value("${scanly.jwt.secret:c2Nhbmx5LXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1zaWduaW5nLTIwMjY=}") String secret,
+        @Value("${scanly.jwt.expiration-ms:86400000}") long expirationMs
     ) {
-        this.secretKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secret));
+        String effectiveSecret = (secret != null && !secret.isBlank()) ? secret.trim() : DEFAULT_DEV_SECRET;
+        byte[] keyBytes;
+        try {
+            keyBytes = Base64.getDecoder().decode(effectiveSecret);
+        } catch (Exception e) {
+            keyBytes = Base64.getDecoder().decode(DEFAULT_DEV_SECRET);
+        }
+        if (keyBytes == null || keyBytes.length < 32) {
+            keyBytes = Base64.getDecoder().decode(DEFAULT_DEV_SECRET);
+        }
+        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
         this.expirationMs = expirationMs;
     }
 
