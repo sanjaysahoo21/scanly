@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import InvoiceForm from '../components/invoices/InvoiceForm.jsx'
 import LineItemsTable from '../components/invoices/LineItemsTable.jsx'
 import Button from '../components/common/Button.jsx'
+import ExportDropdown from '../components/common/ExportDropdown.jsx'
 import { ArrowLeft, CheckCircle } from 'lucide-react'
 import { getInvoice } from '../services/invoiceService.js'
 import { getToken } from '../services/authService.js'
@@ -28,7 +29,13 @@ function InvoiceDetailPage() {
   if (error) return <div className="page-content"><div className="upload-status upload-status-error">{error}</div></div>
   if (!invoice) return <div className="page-content">Loading invoice...</div>
   return <div className="page-content"><Link to="/invoices"><Button variant="ghost" size="sm" icon={ArrowLeft}>Back to Invoices</Button></Link>
-    <div className="page-header"><h1>Invoice {invoice.invoiceNumber || id}</h1><Button variant="primary" icon={CheckCircle} onClick={handleApprove} loading={saving} disabled={invoice.isAudited}>Approve</Button></div>
+    <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <h1>Invoice {invoice.invoiceNumber || id}</h1>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <ExportDropdown endpoint={`/api/v1/invoices/${id}/export`} filename={`invoice-${invoice.invoiceNumber || id}`} />
+        <Button variant="primary" icon={CheckCircle} onClick={handleApprove} loading={saving} disabled={invoice.isAudited}>Approve</Button>
+      </div>
+    </div>
     <div className="card" style={{ padding: 'var(--space-6)' }}><InvoiceForm invoice={invoice} onChange={setInvoice} onSave={handleSave} saving={saving} /><LineItemsTable items={invoice.lineItems || []} onChange={(lineItems) => setInvoice({ ...invoice, lineItems })} /></div>
   </div>
 }

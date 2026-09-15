@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getInvoices } from '../services/invoiceService.js'
 import StatusBadge from '../components/common/StatusBadge.jsx'
+import ExportDropdown from '../components/common/ExportDropdown.jsx'
+import '../styles/invoices.css'
 
 function InvoicesPage() {
   const [invoices, setInvoices] = useState([])
@@ -16,8 +18,16 @@ function InvoicesPage() {
 
   return (
     <div className="page-content">
-      <div className="page-header animate-fade-in-up">
-        <h1>Invoices</h1><p>Browse extracted invoice data and manage audits.</p>
+      <div className="page-header animate-fade-in-up" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1>Invoices</h1>
+          <p>Browse extracted invoice data and manage audits.</p>
+        </div>
+        <ExportDropdown
+          endpoint="/api/v1/invoices/export"
+          filename="invoices"
+          disabled={loading || invoices.length === 0}
+        />
       </div>
       {error && <div className="upload-status upload-status-error">{error}</div>}
       {loading ? <p>Loading invoices...</p> : invoices.length === 0 ? (
@@ -32,3 +42,4 @@ function InvoicesPage() {
 }
 
 export default InvoicesPage
+

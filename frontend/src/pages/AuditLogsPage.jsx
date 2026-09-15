@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import AuditLogTable from '../components/audit/AuditLogTable.jsx'
+import ExportDropdown from '../components/common/ExportDropdown.jsx'
 import { getToken } from '../services/authService.js'
+import '../styles/invoices.css'
 
 async function getAuditLogs({ action = '', page = 0 } = {}) {
   const token = getToken()
@@ -53,24 +55,32 @@ function AuditLogsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="filter-bar animate-fade-in-up stagger-1">
-        <select
-          className="input-field"
-          style={{ width: 'auto', height: '36px', fontSize: 'var(--text-sm)' }}
-          value={actionFilter}
-          onChange={(e) => setActionFilter(e.target.value)}
-        >
-          <option value="">All Actions</option>
-          <option value="EDIT">Edit</option>
-          <option value="APPROVE">Approve</option>
-          <option value="REJECT">Reject</option>
-          <option value="REPROCESS">Reprocess</option>
-        </select>
-        {!loading && (
-          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
-            {totalElements} {totalElements === 1 ? 'entry' : 'entries'}
-          </span>
-        )}
+      <div className="filter-bar animate-fade-in-up stagger-1" style={{ justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <select
+            className="input-field"
+            style={{ width: 'auto', height: '36px', fontSize: 'var(--text-sm)' }}
+            value={actionFilter}
+            onChange={(e) => setActionFilter(e.target.value)}
+          >
+            <option value="">All Actions</option>
+            <option value="EDIT">Edit</option>
+            <option value="APPROVE">Approve</option>
+            <option value="REJECT">Reject</option>
+            <option value="REPROCESS">Reprocess</option>
+          </select>
+          {!loading && (
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+              {totalElements} {totalElements === 1 ? 'entry' : 'entries'}
+            </span>
+          )}
+        </div>
+        <ExportDropdown
+          endpoint="/api/v1/audit-logs/export"
+          filename="audit-logs"
+          extraParams={actionFilter ? { action: actionFilter } : {}}
+          disabled={loading || totalElements === 0}
+        />
       </div>
 
       {error && (
