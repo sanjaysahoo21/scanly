@@ -1,14 +1,11 @@
 package com.scanly.backend.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scanly.backend.dto.InvoiceResponse;
-import com.scanly.backend.entity.Invoice;
 import com.scanly.backend.entity.User;
 import com.scanly.backend.repository.InvoiceRepository;
 import com.scanly.backend.service.ExportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +13,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,7 +24,6 @@ public class InvoiceController {
     private static final int MAX_PAGE_SIZE = 100;
     private final InvoiceRepository invoiceRepository;
     private final ExportService exportService;
-    private final ObjectMapper objectMapper;
 
     @GetMapping
     @Transactional(readOnly = true)
@@ -65,26 +60,23 @@ public class InvoiceController {
     @Transactional(readOnly = true)
     public ResponseEntity<?> exportAll(@AuthenticationPrincipal User currentUser,
                                        @RequestParam(defaultValue = "csv") String format) {
-        if ("json".equalsIgnoreCase(format)) {
-            List<Invoice> invoices = invoiceRepository.findByDocumentOrganizationId(
-                currentUser.getOrganization().getId(), Pageable.unpaged()).getContent();
-            try {
-                byte[] json = objectMapper.writerWithDefaultPrettyPrinter()
-                    .writeValueAsBytes(invoices.stream().map(InvoiceResponse::from).toList());
+        try {
+            UUID orgId = currentUser.getOrganization().getId();
+            if ("json".equalsIgnoreCase(format)) {
+                byte[] json = exportService.exportAllInvoicesJson(orgId);
                 return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"invoices.json\"")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(json);
-            } catch (Exception e) {
-                return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
             }
+            byte[] csv = exportService.exportAllInvoicesCsv(orgId);
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"invoices.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(csv);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
-        // Default: CSV
-        byte[] csv = exportService.exportInvoicesCsv(currentUser.getOrganization());
-        return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"invoices.csv\"")
-            .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
-            .body(csv);
     }
 
     /**
@@ -96,30 +88,24 @@ public class InvoiceController {
     public ResponseEntity<?> exportSingle(@PathVariable UUID id,
                                           @AuthenticationPrincipal User currentUser,
                                           @RequestParam(defaultValue = "csv") String format) {
-        return invoiceRepository.findByIdAndDocumentOrganizationId(id, currentUser.getOrganization().getId())
-            .<ResponseEntity<?>>map(invoice -> {
-                if ("json".equalsIgnoreCase(format)) {
-                    try {
-                        byte[] json = objectMapper.writerWithDefaultPrettyPrinter()
-                            .writeValueAsBytes(InvoiceResponse.from(invoice));
-                        String filename = "invoice-" + (invoice.getInvoiceNumber() != null
-                            ? invoice.getInvoiceNumber().replaceAll("[^a-zA-Z0-9_-]", "_") : invoice.getId()) + ".json";
-                        return ResponseEntity.ok()
-                            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .body(json);
-                    } catch (Exception e) {
-                        return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
-                    }
-                }
-                byte[] csv = exportService.exportSingleInvoiceCsv(invoice);
-                String filename = "invoice-" + (invoice.getInvoiceNumber() != null
-                    ? invoice.getInvoiceNumber().replaceAll("[^a-zA-Z0-9_-]", "_") : invoice.getId()) + ".csv";
-                return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+        try {
+            UUID orgId = currentUser.getOrganization().getId();
+            if ("json".equalsIgnoreCase(format)) {
+                return exportService.exportSingleInvoiceJson(id, orgId)
+                    .<ResponseEntity<?>>map(json -> ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"invoice-" + id + ".json\"")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(json))
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+            }
+            return exportService.exportSingleInvoiceCsv(id, orgId)
+                .<ResponseEntity<?>>map(csv -> ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"invoice-" + id + ".csv\"")
                     .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
-                    .body(csv);
-            })
-            .orElseGet(() -> ResponseEntity.notFound().build());
+                    .body(csv))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
     }
 }
