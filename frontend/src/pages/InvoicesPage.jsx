@@ -56,7 +56,7 @@ function SelectionExportDropdown({ selectedIds, onClear }) {
   return (
     <div className="export-dropdown-wrapper" ref={ref}>
       <button
-        className="export-btn selection-export-btn"
+        className="export-btn"
         onClick={() => setOpen((v) => !v)}
         disabled={loading !== null}
         id="export-selected-btn"
