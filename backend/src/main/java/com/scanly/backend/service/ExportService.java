@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -78,6 +79,47 @@ public class ExportService {
     public byte[] exportAllInvoicesJson(UUID orgId) throws Exception {
         List<InvoiceResponse> dtos = invoiceRepository
             .findByDocumentOrganizationId(orgId, Pageable.unpaged()).getContent()
+            .stream().map(InvoiceResponse::from).toList();
+        return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(dtos);
+    }
+
+    /**
+     * Selected invoices (by ID list) for an org → CSV.
+     * Only IDs that actually belong to the org are included (org-scoped query).
+     */
+    @Transactional(readOnly = true)
+    public byte[] exportSelectedInvoicesCsv(Collection<UUID> ids, UUID orgId) {
+        List<Invoice> invoices = invoiceRepository.findByIdInAndDocumentOrganizationId(ids, orgId);
+        StringBuilder sb = new StringBuilder();
+        sb.append("Invoice Number,Vendor Name,Vendor GSTIN,Buyer Name,Buyer GSTIN,")
+          .append("Invoice Date,Due Date,Subtotal,Tax Amount,Discount Amount,Total Amount,Currency,Is Audited,Line Items Count\n");
+        for (Invoice inv : invoices) {
+            sb.append(csv(inv.getInvoiceNumber())).append(',')
+              .append(csv(inv.getVendorName())).append(',')
+              .append(csv(inv.getVendorGstin())).append(',')
+              .append(csv(inv.getBuyerName())).append(',')
+              .append(csv(inv.getBuyerGstin())).append(',')
+              .append(csv(inv.getInvoiceDate())).append(',')
+              .append(csv(inv.getDueDate())).append(',')
+              .append(csv(inv.getSubtotal())).append(',')
+              .append(csv(inv.getTaxAmount())).append(',')
+              .append(csv(inv.getDiscountAmount())).append(',')
+              .append(csv(inv.getTotalAmount())).append(',')
+              .append(csv(inv.getCurrency())).append(',')
+              .append(Boolean.TRUE.equals(inv.getIsAudited()) ? "Yes" : "No").append(',')
+              .append(inv.getLineItems() != null ? inv.getLineItems().size() : 0)
+              .append('\n');
+        }
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Selected invoices (by ID list) for an org → JSON array.
+     */
+    @Transactional(readOnly = true)
+    public byte[] exportSelectedInvoicesJson(Collection<UUID> ids, UUID orgId) throws Exception {
+        List<InvoiceResponse> dtos = invoiceRepository
+            .findByIdInAndDocumentOrganizationId(ids, orgId)
             .stream().map(InvoiceResponse::from).toList();
         return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(dtos);
     }

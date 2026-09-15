@@ -13,6 +13,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -104,6 +106,39 @@ public class InvoiceController {
                     .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                     .body(csv))
                 .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Export a specific selection of invoices.
+     * POST /api/v1/invoices/export/batch?format=csv|json
+     * Body: { "ids": ["uuid1", "uuid2", ...] }
+     */
+    @PostMapping("/export/batch")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> exportBatch(@AuthenticationPrincipal User currentUser,
+                                         @RequestParam(defaultValue = "csv") String format,
+                                         @RequestBody Map<String, List<UUID>> body) {
+        Collection<UUID> ids = body.get("ids");
+        if (ids == null || ids.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No IDs provided"));
+        }
+        try {
+            UUID orgId = currentUser.getOrganization().getId();
+            if ("json".equalsIgnoreCase(format)) {
+                byte[] json = exportService.exportSelectedInvoicesJson(ids, orgId);
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"invoices-selected.json\"")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(json);
+            }
+            byte[] csv = exportService.exportSelectedInvoicesCsv(ids, orgId);
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"invoices-selected.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(csv);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
