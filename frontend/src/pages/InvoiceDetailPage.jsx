@@ -4,10 +4,70 @@ import InvoiceForm from '../components/invoices/InvoiceForm.jsx'
 import LineItemsTable from '../components/invoices/LineItemsTable.jsx'
 import Button from '../components/common/Button.jsx'
 import ExportDropdown from '../components/common/ExportDropdown.jsx'
-import { ArrowLeft, CheckCircle, AlertTriangle, CheckCheck, RefreshCw } from 'lucide-react'
+import { ArrowLeft, CheckCircle, AlertTriangle, CheckCheck, RefreshCw, Copy, ExternalLink } from 'lucide-react'
 import { getInvoice } from '../services/invoiceService.js'
 import { getToken } from '../services/authService.js'
 import '../styles/invoices.css'
+
+// ── Duplicate Panel ───────────────────────────────────────────────────────────
+function DuplicatePanel({ invoice, onRecheck, loading }) {
+  const { isDuplicate, duplicateReason, duplicateOfId } = invoice
+
+  if (isDuplicate === null || isDuplicate === undefined) {
+    return (
+      <div className="validation-panel validation-panel--pending">
+        <div className="validation-panel__header">
+          <Copy size={15} />
+          <span>Duplicate check not run yet</span>
+          <button className="validation-rerun-btn" onClick={onRecheck} disabled={loading}>
+            {loading ? 'Checking…' : 'Check now'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isDuplicate) {
+    return (
+      <div className="validation-panel validation-panel--ok">
+        <div className="validation-panel__header">
+          <CheckCheck size={15} />
+          <span>No duplicates found</span>
+          <button className="validation-rerun-btn" onClick={onRecheck} disabled={loading}>
+            {loading ? 'Checking…' : 'Re-check'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="validation-panel validation-panel--duplicate">
+      <div className="validation-panel__header">
+        <Copy size={15} />
+        <span>Possible duplicate detected</span>
+        <button className="validation-rerun-btn" onClick={onRecheck} disabled={loading}>
+          {loading ? 'Checking…' : 'Re-check'}
+        </button>
+      </div>
+      <div className="validation-issue-list" style={{ paddingTop: 0 }}>
+        <div className="validation-issue-item">
+          <AlertTriangle size={12} className="validation-issue-icon" style={{ color: '#dc2626' }} />
+          <span>{duplicateReason}</span>
+        </div>
+        {duplicateOfId && (
+          <div className="validation-issue-item" style={{ marginTop: 4 }}>
+            <ExternalLink size={12} className="validation-issue-icon" style={{ color: '#dc2626' }} />
+            <Link to={`/invoices/${duplicateOfId}`} style={{ color: '#dc2626', textDecoration: 'underline' }}>
+              View the original invoice
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 
 // ── Validation Panel ──────────────────────────────────────────────────────────
 function ValidationPanel({ invoice, onRevalidate, loading }) {
@@ -117,6 +177,14 @@ function InvoiceDetailPage() {
     finally { setValidating(false) }
   }
 
+  const [rechecking, setRechecking] = useState(false)
+  const handleRecheck = async () => {
+    setRechecking(true); setError('')
+    try { setInvoice(await mutate(`/api/v1/invoices/${id}/detect-duplicates`, 'POST')) }
+    catch (err) { setError(err.message) }
+    finally { setRechecking(false) }
+  }
+
   if (error) return <div className="page-content"><div className="upload-status upload-status-error">{error}</div></div>
   if (!invoice) return <div className="page-content">Loading invoice...</div>
 
@@ -132,7 +200,10 @@ function InvoiceDetailPage() {
         </div>
       </div>
 
-      {/* Validation Panel */}
+      {/* Duplicate Detection Panel */}
+      <DuplicatePanel invoice={invoice} onRecheck={handleRecheck} loading={rechecking} />
+
+      {/* Math & Tax Validation Panel */}
       <ValidationPanel invoice={invoice} onRevalidate={handleRevalidate} loading={validating} />
 
       <div className="card" style={{ padding: 'var(--space-6)' }}>

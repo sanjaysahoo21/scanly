@@ -6,6 +6,7 @@ import com.scanly.backend.entity.User;
 import com.scanly.backend.repository.InvoiceRepository;
 import com.scanly.backend.repository.InvoiceSpec;
 import com.scanly.backend.service.ExportService;
+import com.scanly.backend.service.DuplicateDetectionService;
 import com.scanly.backend.service.InvoiceValidationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,7 @@ public class InvoiceController {
     private final InvoiceRepository invoiceRepository;
     private final ExportService exportService;
     private final InvoiceValidationService validationService;
+    private final DuplicateDetectionService duplicateDetectionService;
 
     /**
      * List / search invoices for the current org.
@@ -106,6 +108,17 @@ public class InvoiceController {
     @PostMapping("/{id}/validate")
     public ResponseEntity<?> validate(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
         return validationService.validate(id, currentUser.getOrganization().getId())
+            .<ResponseEntity<?>>map(inv -> ResponseEntity.ok(InvoiceResponse.from(inv)))
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * (Re-)run duplicate detection on an invoice.
+     * POST /api/v1/invoices/{id}/detect-duplicates
+     */
+    @PostMapping("/{id}/detect-duplicates")
+    public ResponseEntity<?> detectDuplicates(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
+        return duplicateDetectionService.detect(id, currentUser.getOrganization().getId())
             .<ResponseEntity<?>>map(inv -> ResponseEntity.ok(InvoiceResponse.from(inv)))
             .orElseGet(() -> ResponseEntity.notFound().build());
     }

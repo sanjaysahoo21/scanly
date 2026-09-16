@@ -44,6 +44,7 @@ public class DocumentProcessingService {
     private final InvoiceRepository invoiceRepository;
     private final GroqAiService groqAiService;
     private final InvoiceValidationService validationService;
+    private final DuplicateDetectionService duplicateDetectionService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${scanly.upload-dir:./uploads}")
@@ -106,7 +107,14 @@ public class DocumentProcessingService {
                 log.warn("Validation check failed for document {}: {}", documentId, ve.getMessage());
             }
 
-            // Step 5: Update document with confidence score and status
+            // Step 5: Run duplicate detection
+            try {
+                duplicateDetectionService.detectAndSave(invoice);
+            } catch (Exception de) {
+                log.warn("Duplicate detection failed for document {}: {}", documentId, de.getMessage());
+            }
+
+            // Step 6: Update document with confidence score and status
             document.setStatus(DocumentStatus.COMPLETED);
             document.setRawExtractedText(rawJson);
 

@@ -35,7 +35,10 @@ public class InvoiceResponse {
     private Boolean isAudited;
     private Instant auditedAt;
     private Boolean hasValidationErrors;
-    private String validationIssues;   // JSON array string e.g. ["issue1", "issue2"]
+    private String validationIssues;
+    private Boolean isDuplicate;
+    private UUID duplicateOfId;
+    private String duplicateReason;
     private List<LineItem> lineItems;
 
     public static InvoiceResponse from(Invoice invoice) {
@@ -50,6 +53,9 @@ public class InvoiceResponse {
             .auditedAt(invoice.getAuditedAt())
             .hasValidationErrors(invoice.getHasValidationErrors())
             .validationIssues(invoice.getValidationIssues())
+            .isDuplicate(invoice.getIsDuplicate())
+            .duplicateOfId(invoice.getDuplicateOfId())
+            .duplicateReason(invoice.getDuplicateReason())
             .lineItems(List.copyOf(invoice.getLineItems())).build();
     }
 }

@@ -1,4 +1,4 @@
-package com.scanly.backend.entity;
+ package com.scanly.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.scanly.backend.entity.enums.Currency;
@@ -105,6 +105,26 @@ public class Invoice {
      */
     @Column(name = "validation_issues", columnDefinition = "TEXT")
     private String validationIssues;
+
+    /**
+     * True if this invoice appears to be a duplicate of another.
+     * Null = not yet checked.
+     */
+    @Column(name = "is_duplicate")
+    private Boolean isDuplicate;
+
+    /**
+     * ID of the earlier invoice this was flagged as a duplicate of.
+     */
+    @Column(name = "duplicate_of_id")
+    private UUID duplicateOfId;
+
+    /**
+     * Human-readable reason, e.g. "Same invoice number" or
+     * "Same vendor, amount and date as invoice INV-042".
+     */
+    @Column(name = "duplicate_reason", length = 500)
+    private String duplicateReason;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "audited_by")

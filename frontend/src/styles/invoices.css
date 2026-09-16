@@ -513,3 +513,24 @@ tr.row-selected td {
   align-items: center;
   color: #d97706;
 }
+
+.validation-badge-duplicate {
+  display: inline-flex;
+  align-items: center;
+  color: #dc2626;
+  margin-left: 4px;
+}
+
+/* ── Duplicate Detection Panel ─────────────────────────────────────────────── */
+.validation-panel--duplicate {
+  border-color: #dc262666;
+  background: #fef2f2;
+}
+
+@media (prefers-color-scheme: dark) {
+  .validation-panel--duplicate { background: #1a0606; border-color: #dc262666; }
+}
+
+.validation-panel--duplicate .validation-panel__header {
+  color: #b91c1c;
+}

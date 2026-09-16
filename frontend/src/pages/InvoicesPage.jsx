@@ -1,4 +1,4 @@
-import { Receipt, Eye, Search, SlidersHorizontal, X, Download, FileText, FileJson, ChevronDown, AlertTriangle } from 'lucide-react'
+import { Receipt, Eye, Search, SlidersHorizontal, X, Download, FileText, FileJson, ChevronDown, AlertTriangle, Copy } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getInvoices } from '../services/invoiceService.js'
@@ -295,6 +295,11 @@ function InvoicesPage() {
                     {invoice.hasValidationErrors === true && (
                       <span className="validation-badge-warn" title="Math/tax issues found">
                         <AlertTriangle size={13} />
+                      </span>
+                    )}
+                    {invoice.isDuplicate === true && (
+                      <span className="validation-badge-duplicate" title="Possible duplicate invoice">
+                        <Copy size={13} />
                       </span>
                     )}
                   </td>
