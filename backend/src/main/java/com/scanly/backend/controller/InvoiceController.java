@@ -1,11 +1,15 @@
 package com.scanly.backend.controller;
 
 import com.scanly.backend.dto.InvoiceResponse;
+import com.scanly.backend.entity.Invoice;
 import com.scanly.backend.entity.User;
 import com.scanly.backend.repository.InvoiceRepository;
+import com.scanly.backend.repository.InvoiceSpec;
 import com.scanly.backend.service.ExportService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +17,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -27,17 +33,54 @@ public class InvoiceController {
     private final InvoiceRepository invoiceRepository;
     private final ExportService exportService;
 
+    /**
+     * List / search invoices for the current org.
+     *
+     * GET /api/v1/invoices
+     *   ?q=vendor_or_invoice_text   — text search (vendor name, buyer name, invoice number)
+     *   ?audited=true|false         — filter by audit status (omit for all)
+     *   ?dateFrom=YYYY-MM-DD        — invoice date ≥ dateFrom
+     *   ?dateTo=YYYY-MM-DD          — invoice date ≤ dateTo
+     *   ?amountMin=100              — total amount ≥ amountMin
+     *   ?amountMax=5000             — total amount ≤ amountMax
+     *   ?page=0&size=20             — pagination
+     *   ?sort=invoiceDate,desc      — sorting (field,direction)
+     */
     @GetMapping
     @Transactional(readOnly = true)
-    public ResponseEntity<?> list(@AuthenticationPrincipal User currentUser,
-                                  @RequestParam(defaultValue = "0") int page,
-                                  @RequestParam(defaultValue = "20") int size) {
+    public ResponseEntity<?> list(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Boolean audited,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false) BigDecimal amountMin,
+            @RequestParam(required = false) BigDecimal amountMax,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "invoiceDate,desc") String sort) {
+
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
             return ResponseEntity.badRequest().body(Map.of("error", "INVALID_PAGINATION",
                 "message", "page must be non-negative and size must be 1-100"));
         }
-        var result = invoiceRepository.findByDocumentOrganizationId(
-            currentUser.getOrganization().getId(), PageRequest.of(page, size));
+
+        // Parse sort param: "field,direction"
+        String[] sortParts = sort.split(",");
+        String sortField = sortParts[0].trim();
+        Sort.Direction direction = sortParts.length > 1 && "asc".equalsIgnoreCase(sortParts[1].trim())
+            ? Sort.Direction.ASC : Sort.Direction.DESC;
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+
+        // Parse optional date strings
+        LocalDate from = dateFrom != null && !dateFrom.isBlank() ? LocalDate.parse(dateFrom) : null;
+        LocalDate to = dateTo != null && !dateTo.isBlank() ? LocalDate.parse(dateTo) : null;
+
+        var spec = InvoiceSpec.build(
+            currentUser.getOrganization().getId(), q, audited, from, to, amountMin, amountMax);
+
+        Page<Invoice> result = invoiceRepository.findAll(spec, pageable);
+
         return ResponseEntity.ok(Map.of(
             "invoices", result.getContent().stream().map(InvoiceResponse::from).toList(),
             "totalElements", result.getTotalElements(),
