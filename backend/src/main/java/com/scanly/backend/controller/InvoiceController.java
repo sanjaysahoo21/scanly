@@ -6,6 +6,7 @@ import com.scanly.backend.entity.User;
 import com.scanly.backend.repository.InvoiceRepository;
 import com.scanly.backend.repository.InvoiceSpec;
 import com.scanly.backend.service.ExportService;
+import com.scanly.backend.service.InvoiceValidationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +33,7 @@ public class InvoiceController {
     private static final int MAX_PAGE_SIZE = 100;
     private final InvoiceRepository invoiceRepository;
     private final ExportService exportService;
+    private final InvoiceValidationService validationService;
 
     /**
      * List / search invoices for the current org.
@@ -96,6 +98,17 @@ public class InvoiceController {
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * Manually (re-)run math and tax validation on an invoice.
+     * Useful after the user edits invoice fields and wants fresh validation results.
+     * POST /api/v1/invoices/{id}/validate
+     */
+    @PostMapping("/{id}/validate")
+    public ResponseEntity<?> validate(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
+        return validationService.validate(id, currentUser.getOrganization().getId())
+            .<ResponseEntity<?>>map(inv -> ResponseEntity.ok(InvoiceResponse.from(inv)))
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
     /**
      * Export all invoices for the current org.
      * GET /api/v1/invoices/export?format=csv  (default)

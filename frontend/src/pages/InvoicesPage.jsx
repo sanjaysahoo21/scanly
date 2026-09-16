@@ -1,4 +1,4 @@
-import { Receipt, Eye, Search, SlidersHorizontal, X, Download, FileText, FileJson, ChevronDown } from 'lucide-react'
+import { Receipt, Eye, Search, SlidersHorizontal, X, Download, FileText, FileJson, ChevronDown, AlertTriangle } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getInvoices } from '../services/invoiceService.js'
@@ -275,6 +275,7 @@ function InvoicesPage() {
                 <th>Date</th>
                 <th>Total</th>
                 <th>Status</th>
+                <th title="Math & tax validation">⚠</th>
                 <th></th>
               </tr>
             </thead>
@@ -290,6 +291,13 @@ function InvoicesPage() {
                   <td>{invoice.invoiceDate || '—'}</td>
                   <td>{invoice.totalAmount ?? '—'} {invoice.currency || ''}</td>
                   <td><StatusBadge status={invoice.isAudited ? 'COMPLETED' : 'NEEDS_REVIEW'} /></td>
+                  <td>
+                    {invoice.hasValidationErrors === true && (
+                      <span className="validation-badge-warn" title="Math/tax issues found">
+                        <AlertTriangle size={13} />
+                      </span>
+                    )}
+                  </td>
                   <td onClick={(e) => e.stopPropagation()}>
                     <Link to={`/invoices/${invoice.id}`} aria-label="View invoice"><Eye size={16} /></Link>
                   </td>

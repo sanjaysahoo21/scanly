@@ -425,4 +425,91 @@ tr.row-selected td {
   text-decoration: underline;
 }
 
+/* ── Validation Panel ─────────────────────────────────────────────────────── */
+.validation-panel {
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+  overflow: hidden;
+  border: 1px solid;
+}
 
+.validation-panel--pending {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+.validation-panel--ok {
+  border-color: #22c55e44;
+  background: #f0fdf4;
+}
+
+.validation-panel--error {
+  border-color: #f59e0b66;
+  background: #fffbeb;
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  .validation-panel--ok  { background: #052e16; border-color: #16a34a66; }
+  .validation-panel--error { background: #1c1007; border-color: #d9770066; }
+}
+
+.validation-panel__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.validation-panel--ok .validation-panel__header   { color: #15803d; }
+.validation-panel--error .validation-panel__header { color: #b45309; }
+.validation-panel--pending .validation-panel__header { color: var(--color-text-muted); }
+
+.validation-rerun-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  font-family: var(--font-family);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.75;
+  transition: opacity var(--transition-fast);
+}
+.validation-rerun-btn:hover:not(:disabled) { opacity: 1; }
+.validation-rerun-btn:disabled { cursor: not-allowed; opacity: 0.4; }
+
+.validation-issue-list {
+  list-style: none;
+  padding: 0 var(--space-4) var(--space-3) var(--space-4);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.validation-issue-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: #92400e;
+  line-height: 1.5;
+}
+
+.validation-issue-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #d97706;
+}
+
+/* ── Validation Badge (list view) ──────────────────────────────────────────── */
+.validation-badge-warn {
+  display: inline-flex;
+  align-items: center;
+  color: #d97706;
+}

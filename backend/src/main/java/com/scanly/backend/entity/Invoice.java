@@ -91,6 +91,21 @@ public class Invoice {
     @Builder.Default
     private Boolean isAudited = false;
 
+    /**
+     * True if the last validation run found any math/tax discrepancies.
+     * Null means validation has not run yet.
+     */
+    @Column(name = "has_validation_errors")
+    private Boolean hasValidationErrors;
+
+    /**
+     * JSON array of human-readable issue strings from the last validation run.
+     * Example: ["Line item totals sum to 4820 but subtotal is 4280"]
+     * Stored as TEXT because the list is small and querying into it is not needed.
+     */
+    @Column(name = "validation_issues", columnDefinition = "TEXT")
+    private String validationIssues;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "audited_by")
     private User auditedBy;

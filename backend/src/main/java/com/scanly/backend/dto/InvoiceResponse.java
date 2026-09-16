@@ -34,6 +34,8 @@ public class InvoiceResponse {
     private Currency currency;
     private Boolean isAudited;
     private Instant auditedAt;
+    private Boolean hasValidationErrors;
+    private String validationIssues;   // JSON array string e.g. ["issue1", "issue2"]
     private List<LineItem> lineItems;
 
     public static InvoiceResponse from(Invoice invoice) {
@@ -45,6 +47,9 @@ public class InvoiceResponse {
             .buyerGstin(invoice.getBuyerGstin()).invoiceDate(invoice.getInvoiceDate()).dueDate(invoice.getDueDate())
             .subtotal(invoice.getSubtotal()).taxAmount(invoice.getTaxAmount()).discountAmount(invoice.getDiscountAmount())
             .totalAmount(invoice.getTotalAmount()).currency(invoice.getCurrency()).isAudited(invoice.getIsAudited())
-            .auditedAt(invoice.getAuditedAt()).lineItems(List.copyOf(invoice.getLineItems())).build();
+            .auditedAt(invoice.getAuditedAt())
+            .hasValidationErrors(invoice.getHasValidationErrors())
+            .validationIssues(invoice.getValidationIssues())
+            .lineItems(List.copyOf(invoice.getLineItems())).build();
     }
 }

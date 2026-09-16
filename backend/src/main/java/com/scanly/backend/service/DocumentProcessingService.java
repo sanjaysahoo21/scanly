@@ -43,6 +43,7 @@ public class DocumentProcessingService {
     private final DocumentRepository documentRepository;
     private final InvoiceRepository invoiceRepository;
     private final GroqAiService groqAiService;
+    private final InvoiceValidationService validationService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${scanly.upload-dir:./uploads}")
@@ -98,7 +99,14 @@ public class DocumentProcessingService {
         try {
             Invoice invoice = parseAndSaveInvoice(document, rawJson);
 
-            // Step 4: Update document with confidence score and status
+            // Step 4: Run math/tax validation on the saved invoice
+            try {
+                validationService.validateAndSave(invoice);
+            } catch (Exception ve) {
+                log.warn("Validation check failed for document {}: {}", documentId, ve.getMessage());
+            }
+
+            // Step 5: Update document with confidence score and status
             document.setStatus(DocumentStatus.COMPLETED);
             document.setRawExtractedText(rawJson);
 
