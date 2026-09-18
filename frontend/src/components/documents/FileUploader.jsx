@@ -1,9 +1,10 @@
-import { Upload, X, FileText } from 'lucide-react'
+import { Upload, X, FileText, Image } from 'lucide-react'
 import { useState, useRef } from 'react'
 import Button from '../common/Button.jsx'
 import '../../styles/documents.css'
 
-const ACCEPTED_TYPES = ['.pdf']
+const ACCEPTED_TYPES = ['.pdf', '.jpg', '.jpeg', '.png', '.webp']
+const ACCEPTED_MIME  = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
 
 function FileUploader({ onUpload, uploading = false }) {
@@ -14,7 +15,7 @@ function FileUploader({ onUpload, uploading = false }) {
   const validateFile = (file) => {
     const ext = '.' + file.name.split('.').pop().toLowerCase()
     if (!ACCEPTED_TYPES.includes(ext)) {
-      return 'Invalid file type'
+      return `Unsupported type (${ext}). Use PDF, JPG, PNG, or WEBP.`
     }
     if (file.size > MAX_SIZE_BYTES) {
       return 'File exceeds 10MB limit'
@@ -69,7 +70,12 @@ function FileUploader({ onUpload, uploading = false }) {
 
   const getFileIcon = (fileName) => {
     const ext = fileName.split('.').pop().toLowerCase()
-    return FileText
+    return ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? Image : FileText
+  }
+
+  const isImageFile = (fileName) => {
+    const ext = fileName.split('.').pop().toLowerCase()
+    return ['jpg', 'jpeg', 'png', 'webp'].includes(ext)
   }
 
   const formatSize = (bytes) => {
@@ -95,7 +101,7 @@ function FileUploader({ onUpload, uploading = false }) {
           ref={inputRef}
           type="file"
           multiple
-          accept=".pdf,application/pdf"
+          accept=".pdf,application/pdf,.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
           onChange={handleInputChange}
           className="drop-zone-input"
           id="file-input"
@@ -104,14 +110,18 @@ function FileUploader({ onUpload, uploading = false }) {
           <Upload size={32} strokeWidth={1.5} />
         </div>
         <div className="drop-zone-text">
-          <span className="drop-zone-title">Drag & drop files here</span>
+          <span className="drop-zone-title">Drag &amp; drop files here</span>
           <span className="drop-zone-subtitle">
             or <span className="drop-zone-link">click to browse</span>
           </span>
         </div>
-        <span className="drop-zone-hint">
-          PDF, JPG, PNG — Max 10MB per file
-        </span>
+        <div className="drop-zone-type-chips">
+          <span className="type-chip type-chip--pdf">PDF</span>
+          <span className="type-chip type-chip--image">JPG</span>
+          <span className="type-chip type-chip--image">PNG</span>
+          <span className="type-chip type-chip--image">WEBP</span>
+        </div>
+        <span className="drop-zone-hint">Max 10MB per file</span>
       </div>
 
       {/* File List */}
@@ -122,17 +132,24 @@ function FileUploader({ onUpload, uploading = false }) {
           </div>
           {files.map((item, index) => {
             const FileIcon = getFileIcon(item.file.name)
+            const isImg = isImageFile(item.file.name)
             return (
               <div
                 key={item.id}
                 className={`file-item animate-fade-in-up stagger-${index + 1} ${item.error ? 'file-item-error' : ''}`}
               >
-                <div className="file-item-icon">
+                <div className={`file-item-icon ${isImg ? 'file-item-icon--image' : ''}`}>
                   <FileIcon size={18} strokeWidth={1.8} />
                 </div>
                 <div className="file-item-info">
                   <span className="file-item-name">{item.file.name}</span>
-                  <span className="file-item-size">{formatSize(item.file.size)}</span>
+                  <span className="file-item-size">
+                    {isImg ? (
+                      <span className="file-item-badge file-item-badge--image">Image · {formatSize(item.file.size)}</span>
+                    ) : (
+                      <span className="file-item-badge file-item-badge--pdf">PDF · {formatSize(item.file.size)}</span>
+                    )}
+                  </span>
                 </div>
                 {item.error && (
                   <span className="file-item-error-text">{item.error}</span>

@@ -161,6 +161,66 @@
   margin-top: var(--space-1);
 }
 
+/* File-type chips shown inside the drop zone */
+.drop-zone-type-chips {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.type-chip {
+  font-size: 10px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+
+.type-chip--pdf {
+  color: #dc2626;
+  border-color: #dc262666;
+  background: #fef2f2;
+}
+
+.type-chip--image {
+  color: #7c3aed;
+  border-color: #7c3aed66;
+  background: #f5f3ff;
+}
+
+/* Image vs PDF icon tint in file list */
+.file-item-icon--image {
+  color: #7c3aed;
+}
+
+/* Type badges on the size line */
+.file-item-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-right: var(--space-2);
+}
+
+.file-item-badge--pdf {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.file-item-badge--image {
+  color: #7c3aed;
+  background: #f5f3ff;
+}
+
+
 /* File List */
 .file-list {
   background: var(--color-bg);

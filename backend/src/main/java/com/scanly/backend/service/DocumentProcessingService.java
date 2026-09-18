@@ -7,6 +7,7 @@ import com.scanly.backend.entity.Invoice;
 import com.scanly.backend.entity.LineItem;
 import com.scanly.backend.entity.enums.Currency;
 import com.scanly.backend.entity.enums.DocumentStatus;
+import com.scanly.backend.entity.enums.FileType;
 import com.scanly.backend.repository.DocumentRepository;
 import com.scanly.backend.repository.InvoiceRepository;
 import lombok.RequiredArgsConstructor;
@@ -83,11 +84,17 @@ public class DocumentProcessingService {
         document.setStatus(DocumentStatus.PROCESSING);
         documentRepository.saveAndFlush(document);
 
-        // Step 2: Read the file from disk & call Groq AI extraction
+        // Step 2: Route to PDF text extractor or Vision AI based on file type
         Path filePath = Path.of(document.getFilePath());
         String rawJson;
+        boolean isImage = document.getFileType() == FileType.IMAGE;
         try {
-            rawJson = groqAiService.extractAndStructureInvoice(filePath, document.getFileName());
+            if (isImage) {
+                log.info("Routing {} to vision AI (image/receipt)", document.getFileName());
+                rawJson = groqAiService.extractAndStructureImage(filePath, document.getFileName());
+            } else {
+                rawJson = groqAiService.extractAndStructureInvoice(filePath, document.getFileName());
+            }
         } catch (Exception e) {
             log.error("AI extraction failed for document {}: {}", documentId, e.getMessage(), e);
             document.setStatus(DocumentStatus.FAILED);

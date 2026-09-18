@@ -34,6 +34,10 @@ public class GroqAiService {
     @Value("${groq.model:openai/gpt-oss-120b}")
     private String model;
 
+    /** Vision model used for image/receipt processing. */
+    @Value("${groq.vision.model:meta-llama/llama-4-scout-17b-16e-instruct}")
+    private String visionModel;
+
     @Value("${groq.url:https://api.groq.com/openai/v1/chat/completions}")
     private String apiUrl;
 
@@ -128,6 +132,69 @@ public class GroqAiService {
             .asText();
 
         return structuredJson.trim();
+    }
+
+    /**
+     * Process a scanned image or photo of an invoice using a vision-capable LLM.
+     *
+     * The image is base64-encoded and sent as an OpenAI-compatible vision message.
+     * Returns structured invoice JSON in the same format as extractAndStructureInvoice().
+     *
+     * @param filePath  path to the image file on disk (JPG / PNG / WEBP)
+     * @param fileName  original filename (used for logging and MIME detection)
+     */
+    public String extractAndStructureImage(Path filePath, String fileName) throws IOException {
+        byte[] imageBytes = Files.readAllBytes(filePath);
+        String base64Image = java.util.Base64.getEncoder().encodeToString(imageBytes);
+        String mimeType = resolveMimeType(fileName);
+
+        log.info("Sending image {} ({} bytes) to vision model: {}", fileName, imageBytes.length, visionModel);
+
+        // Vision message: content is a list with text + image_url parts
+        Map<String, Object> textPart  = Map.of("type", "text",      "text", SYSTEM_PROMPT);
+        Map<String, Object> imagePart = Map.of("type", "image_url",
+            "image_url", Map.of("url", "data:" + mimeType + ";base64," + base64Image));
+
+        Map<String, Object> userMessage = Map.of(
+            "role", "user",
+            "content", List.of(textPart, imagePart)
+        );
+
+        Map<String, Object> requestBody = Map.of(
+            "model", visionModel,
+            "messages", List.of(userMessage),
+            "temperature", 0.1,
+            "max_tokens", 2048
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("Groq Vision API error: " + response.getStatusCode());
+        }
+
+        JsonNode root = objectMapper.readTree(response.getBody());
+        String raw = root.path("choices").get(0)
+            .path("message").path("content").asText();
+
+        // Strip markdown code fences the model sometimes adds
+        return raw.replaceAll("(?s)^```json\\s*", "")
+                  .replaceAll("(?s)```\\s*$", "")
+                  .trim();
+    }
+
+    /** Resolve MIME type from file extension for base64 data URI. */
+    private String resolveMimeType(String fileName) {
+        String lower = fileName.toLowerCase();
+        if (lower.endsWith(".png"))               return "image/png";
+        if (lower.endsWith(".webp"))              return "image/webp";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        return "image/jpeg"; // safe default
     }
 
     /**

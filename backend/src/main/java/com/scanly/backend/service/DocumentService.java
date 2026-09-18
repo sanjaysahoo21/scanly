@@ -67,7 +67,8 @@ public class DocumentService {
             if (file.isEmpty()) continue;
 
             String contentType = file.getContentType();
-            if (!isPdf(file)) {
+            FileType fileType = detectFileType(file);
+            if (fileType == null) {
                 log.warn("Rejected file '{}' — unsupported type: {}", file.getOriginalFilename(), contentType);
                 continue;
             }
@@ -77,9 +78,10 @@ public class DocumentService {
                 continue;
             }
 
-            // Generate unique file name to avoid collisions
+            // Generate unique file name preserving original extension
             String originalName = safeFileName(file.getOriginalFilename());
-            String storedFileName = UUID.randomUUID() + ".pdf";
+            String ext = originalExtension(originalName, fileType);
+            String storedFileName = UUID.randomUUID() + ext;
             Path filePath = orgUploadPath.resolve(storedFileName).toAbsolutePath().normalize();
             if (!filePath.startsWith(orgUploadPath)) {
                 throw new IOException("Invalid upload path: potential path traversal detected");
@@ -91,8 +93,7 @@ public class DocumentService {
             }
             log.info("Saved file: {}", filePath);
 
-            // Determine FileType enum from content type
-            FileType fileType = FileType.PDF;
+            // Determine FileType enum from magic bytes (already detected above)
 
             // Create Document record in DB with status PENDING
             Document document = Document.builder()
@@ -152,13 +153,59 @@ public class DocumentService {
         return documentRepository.findByIdAndOrganization(id, currentUser.getOrganization());
     }
 
-    private boolean isPdf(MultipartFile file) throws IOException {
-        if (file.isEmpty() || file.getSize() > MAX_FILE_SIZE) return false;
+    /**
+     * Detect file type by reading the file magic bytes.
+     * Returns null for unsupported types.
+     */
+    private FileType detectFileType(MultipartFile file) throws IOException {
+        if (file.isEmpty() || file.getSize() > MAX_FILE_SIZE) return null;
         try (var input = file.getInputStream()) {
-            byte[] header = input.readNBytes(5);
-            return header.length == 5 && header[0] == '%' && header[1] == 'P'
-                && header[2] == 'D' && header[3] == 'F' && header[4] == '-';
+            byte[] header = input.readNBytes(8);
+            // %PDF-
+            if (header.length >= 5
+                    && header[0] == '%' && header[1] == 'P'
+                    && header[2] == 'D' && header[3] == 'F' && header[4] == '-') {
+                return FileType.PDF;
+            }
+            // JPEG: FF D8 FF
+            if (header.length >= 3
+                    && (header[0] & 0xFF) == 0xFF
+                    && (header[1] & 0xFF) == 0xD8
+                    && (header[2] & 0xFF) == 0xFF) {
+                return FileType.IMAGE;
+            }
+            // PNG: 89 50 4E 47 0D 0A 1A 0A
+            if (header.length >= 8
+                    && (header[0] & 0xFF) == 0x89
+                    && header[1] == 'P' && header[2] == 'N' && header[3] == 'G'
+                    && header[4] == 0x0D && header[5] == 0x0A
+                    && header[6] == 0x1A && header[7] == 0x0A) {
+                return FileType.IMAGE;
+            }
+            // WEBP: RIFF????WEBP
+            if (header.length >= 4
+                    && header[0] == 'R' && header[1] == 'I'
+                    && header[2] == 'F' && header[3] == 'F') {
+                return FileType.IMAGE;
+            }
         }
+        return null;
+    }
+
+    /**
+     * Returns the file extension to use for storage based on detected type.
+     */
+    private String originalExtension(String originalName, FileType fileType) {
+        if (fileType == FileType.PDF) return ".pdf";
+        // For images, keep the original extension so the OS/viewer knows the format
+        int dot = originalName.lastIndexOf('.');
+        if (dot >= 0) {
+            String ext = originalName.substring(dot).toLowerCase();
+            if (ext.equals(".jpg") || ext.equals(".jpeg") || ext.equals(".png") || ext.equals(".webp")) {
+                return ext.equals(".jpg") ? ".jpg" : ext;
+            }
+        }
+        return ".jpg"; // fallback
     }
 
     private String safeFileName(String originalName) {
