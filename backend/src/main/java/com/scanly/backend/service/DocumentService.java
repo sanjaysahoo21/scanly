@@ -154,41 +154,46 @@ public class DocumentService {
     }
 
     /**
-     * Detect file type by reading the file magic bytes.
+     * Detect file type using the browser-supplied content type and file extension.
+     * For PDFs we additionally verify the magic bytes (%PDF-) to prevent spoofing.
+     * For images the browser content type is trusted — browsers reliably declare
+     * image/jpeg, image/png, image/webp for real image files.
+     *
      * Returns null for unsupported types.
      */
     private FileType detectFileType(MultipartFile file) throws IOException {
         if (file.isEmpty() || file.getSize() > MAX_FILE_SIZE) return null;
-        try (var input = file.getInputStream()) {
-            byte[] header = input.readNBytes(8);
-            // %PDF-
-            if (header.length >= 5
-                    && header[0] == '%' && header[1] == 'P'
-                    && header[2] == 'D' && header[3] == 'F' && header[4] == '-') {
-                return FileType.PDF;
+
+        String ct = file.getContentType() == null ? "" : file.getContentType().toLowerCase();
+        String name = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase();
+
+        // ── PDF ────────────────────────────────────────────────────────────────
+        boolean looksLikePdf = ct.contains("pdf") || name.endsWith(".pdf");
+        if (looksLikePdf) {
+            // Verify magic bytes so a renamed image can't sneak through as PDF
+            try (var input = file.getInputStream()) {
+                byte[] header = input.readNBytes(5);
+                if (header.length == 5
+                        && header[0] == '%' && header[1] == 'P'
+                        && header[2] == 'D' && header[3] == 'F' && header[4] == '-') {
+                    return FileType.PDF;
+                }
             }
-            // JPEG: FF D8 FF
-            if (header.length >= 3
-                    && (header[0] & 0xFF) == 0xFF
-                    && (header[1] & 0xFF) == 0xD8
-                    && (header[2] & 0xFF) == 0xFF) {
-                return FileType.IMAGE;
-            }
-            // PNG: 89 50 4E 47 0D 0A 1A 0A
-            if (header.length >= 8
-                    && (header[0] & 0xFF) == 0x89
-                    && header[1] == 'P' && header[2] == 'N' && header[3] == 'G'
-                    && header[4] == 0x0D && header[5] == 0x0A
-                    && header[6] == 0x1A && header[7] == 0x0A) {
-                return FileType.IMAGE;
-            }
-            // WEBP: RIFF????WEBP
-            if (header.length >= 4
-                    && header[0] == 'R' && header[1] == 'I'
-                    && header[2] == 'F' && header[3] == 'F') {
-                return FileType.IMAGE;
-            }
+            return null; // content type said PDF but magic bytes don't match
         }
+
+        // ── Images — trust the browser's content type and/or file extension ──
+        boolean looksLikeImage = ct.startsWith("image/jpeg")
+                || ct.startsWith("image/jpg")
+                || ct.startsWith("image/png")
+                || ct.startsWith("image/webp")
+                || name.endsWith(".jpg")
+                || name.endsWith(".jpeg")
+                || name.endsWith(".png")
+                || name.endsWith(".webp");
+
+        if (looksLikeImage) return FileType.IMAGE;
+
         return null;
     }
 
