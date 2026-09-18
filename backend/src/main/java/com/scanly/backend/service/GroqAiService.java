@@ -34,10 +34,6 @@ public class GroqAiService {
     @Value("${groq.model:openai/gpt-oss-120b}")
     private String model;
 
-    /** Vision model used for image/receipt processing. */
-    @Value("${groq.vision.model:meta-llama/llama-4-scout-17b-16e-instruct}")
-    private String visionModel;
-
     @Value("${groq.url:https://api.groq.com/openai/v1/chat/completions}")
     private String apiUrl;
 
@@ -135,36 +131,70 @@ public class GroqAiService {
     }
 
     /**
-     * Process a scanned image or photo of an invoice using a vision-capable LLM.
+     * Process a scanned image or receipt using Tesseract OCR to extract text,
+     * then pass that text to the standard LLM structuring pipeline.
      *
-     * The image is base64-encoded and sent as an OpenAI-compatible vision message.
-     * Returns structured invoice JSON in the same format as extractAndStructureInvoice().
+     * This avoids the need for a vision-capable LLM — Tesseract is purpose-built
+     * for document/receipt OCR and gives higher accuracy on structured layouts.
      *
-     * @param filePath  path to the image file on disk (JPG / PNG / WEBP)
-     * @param fileName  original filename (used for logging and MIME detection)
+     * Requires: Tesseract OCR installed on the system (in PATH).
+     *   Windows: winget install UB-Mannheim.TesseractOCR
+     *   Ubuntu:  sudo apt install tesseract-ocr
      */
-    public String extractAndStructureImage(Path filePath, String fileName) throws IOException {
-        byte[] imageBytes = Files.readAllBytes(filePath);
-        String base64Image = java.util.Base64.getEncoder().encodeToString(imageBytes);
-        String mimeType = resolveMimeType(fileName);
+    public String extractAndStructureImage(Path filePath, String fileName) throws Exception {
+        log.info("Extracting text from image {} via Tesseract OCR", fileName);
 
-        log.info("Sending image {} ({} bytes) to vision model: {}", fileName, imageBytes.length, visionModel);
+        String ocrText;
+        try {
+            net.sourceforge.tess4j.Tesseract tesseract = new net.sourceforge.tess4j.Tesseract();
 
-        // Vision message: content is a list with text + image_url parts
-        Map<String, Object> textPart  = Map.of("type", "text",      "text", SYSTEM_PROMPT);
-        Map<String, Object> imagePart = Map.of("type", "image_url",
-            "image_url", Map.of("url", "data:" + mimeType + ";base64," + base64Image));
+            // Look for tessdata in standard Windows install locations
+            String tessdata = findTessdata();
+            if (tessdata != null) {
+                tesseract.setDatapath(tessdata);
+            }
+            tesseract.setLanguage("eng");
+            tesseract.setPageSegMode(6); // PSM_ASSUME_UNIFORM_BLOCK — good for invoices
 
-        Map<String, Object> userMessage = Map.of(
-            "role", "user",
-            "content", List.of(textPart, imagePart)
-        );
+            java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(filePath.toFile());
+            if (img == null) {
+                throw new IOException("Could not read image file: " + fileName);
+            }
+
+            ocrText = tesseract.doOCR(img).trim();
+            log.info("Tesseract extracted {} characters from {}", ocrText.length(), fileName);
+        } catch (Exception e) {
+            log.error("Tesseract OCR failed for {}: {}", fileName, e.getMessage());
+            throw new IOException("Image OCR failed: " + e.getMessage()
+                + ". Ensure Tesseract is installed: winget install UB-Mannheim.TesseractOCR", e);
+        }
+
+        if (ocrText.isBlank()) {
+            ocrText = "Image file: " + fileName + " (no text could be extracted by OCR)";
+        }
+
+        // Reuse the existing LLM structuring pipeline with the OCR'd text
+        return extractAndStructureInvoice(filePath, fileName + "_ocr_bypass", ocrText);
+    }
+
+    /**
+     * Overload that accepts pre-extracted text (used by image OCR path).
+     */
+    private String extractAndStructureInvoice(Path ignored, String logName, String documentText) {
+        final int maxCharacters = 100_000;
+        if (documentText.length() > maxCharacters) {
+            documentText = documentText.substring(0, maxCharacters);
+        }
+        log.info("Sending {} characters from {} to LLM for structuring", documentText.length(), logName);
 
         Map<String, Object> requestBody = Map.of(
-            "model", visionModel,
-            "messages", List.of(userMessage),
-            "temperature", 0.1,
-            "max_tokens", 2048
+            "model", model,
+            "messages", List.of(
+                Map.of("role", "system", "content", SYSTEM_PROMPT),
+                Map.of("role", "user", "content", "Document Text:\n\n" + documentText)
+            ),
+            "response_format", Map.of("type", "json_object"),
+            "temperature", 0.1
         );
 
         HttpHeaders headers = new HttpHeaders();
@@ -175,26 +205,37 @@ public class GroqAiService {
         ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new RuntimeException("Groq Vision API error: " + response.getStatusCode());
+            throw new RuntimeException("Groq API error: " + response.getStatusCode());
         }
 
-        JsonNode root = objectMapper.readTree(response.getBody());
-        String raw = root.path("choices").get(0)
-            .path("message").path("content").asText();
-
-        // Strip markdown code fences the model sometimes adds
-        return raw.replaceAll("(?s)^```json\\s*", "")
-                  .replaceAll("(?s)```\\s*$", "")
-                  .trim();
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(response.getBody());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse Groq response: " + e.getMessage(), e);
+        }
+        return root.path("choices").get(0).path("message").path("content").asText().trim();
     }
 
-    /** Resolve MIME type from file extension for base64 data URI. */
-    private String resolveMimeType(String fileName) {
-        String lower = fileName.toLowerCase();
-        if (lower.endsWith(".png"))               return "image/png";
-        if (lower.endsWith(".webp"))              return "image/webp";
-        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-        return "image/jpeg"; // safe default
+    /**
+     * Find the tessdata directory in common Tesseract installation locations.
+     * Returns null if not found (Tesseract will use its default search path).
+     */
+    private String findTessdata() {
+        String[] candidates = {
+            "C:\\Program Files\\Tesseract-OCR\\tessdata",
+            "C:\\Program Files (x86)\\Tesseract-OCR\\tessdata",
+            System.getenv("TESSDATA_PREFIX") != null ? System.getenv("TESSDATA_PREFIX") : "",
+            "/usr/share/tesseract-ocr/4.00/tessdata",   // Ubuntu
+            "/usr/local/share/tessdata"                  // macOS Homebrew
+        };
+        for (String path : candidates) {
+            if (path != null && !path.isBlank() && new java.io.File(path).isDirectory()) {
+                log.info("Using tessdata at: {}", path);
+                return new java.io.File(path).getParent(); // datapath = parent of tessdata/
+            }
+        }
+        return null;
     }
 
     /**
@@ -216,3 +257,4 @@ public class GroqAiService {
         }
     }
 }
+
