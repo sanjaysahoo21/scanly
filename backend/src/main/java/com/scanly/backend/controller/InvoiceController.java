@@ -9,6 +9,7 @@ import com.scanly.backend.service.ExportService;
 import com.scanly.backend.service.DuplicateDetectionService;
 import com.scanly.backend.service.InvoiceValidationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -29,6 +30,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/invoices")
 @RequiredArgsConstructor
+@Slf4j
 public class InvoiceController {
 
     private static final int MAX_PAGE_SIZE = 100;
@@ -146,7 +148,8 @@ public class InvoiceController {
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .body(csv);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            log.error("Export all invoices failed (format={})", format, e);
+            return ResponseEntity.internalServerError().body(Map.of("error", String.valueOf(e.getMessage())));
         }
     }
 
@@ -176,7 +179,8 @@ public class InvoiceController {
                     .body(csv))
                 .orElseGet(() -> ResponseEntity.notFound().build());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            log.error("Export single invoice failed (id={}, format={})", id, format, e);
+            return ResponseEntity.internalServerError().body(Map.of("error", String.valueOf(e.getMessage())));
         }
     }
 
@@ -209,7 +213,8 @@ public class InvoiceController {
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .body(csv);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            log.error("Export batch invoices failed (format={})", format, e);
+            return ResponseEntity.internalServerError().body(Map.of("error", String.valueOf(e.getMessage())));
         }
     }
 }

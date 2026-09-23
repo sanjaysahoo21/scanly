@@ -98,6 +98,11 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 		</dependency>
+		<!-- Java 8+ date/time support for JSON exports (LocalDate, Instant) -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+		</dependency>
 
 		<!-- Apache PDFBox — Local PDF text and metadata extraction -->
 		<dependency>

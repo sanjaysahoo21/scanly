@@ -1,6 +1,7 @@
 package com.scanly.backend.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scanly.backend.dto.AuditLogResponse;
 import com.scanly.backend.dto.InvoiceResponse;
 import com.scanly.backend.entity.AuditLog;
 import com.scanly.backend.entity.Invoice;
@@ -206,12 +207,13 @@ public class ExportService {
     }
 
     /**
-     * Audit logs for an org → JSON.
+     * Audit logs for an org → JSON (via DTO to avoid circular reference).
      */
     @Transactional(readOnly = true)
     public byte[] exportAuditLogsJson(Organization org, AuditAction actionFilter) throws Exception {
-        return objectMapper.writerWithDefaultPrettyPrinter()
-            .writeValueAsBytes(fetchAuditLogs(org, actionFilter));
+        List<AuditLogResponse> dtos = fetchAuditLogs(org, actionFilter)
+            .stream().map(AuditLogResponse::from).toList();
+        return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(dtos);
     }
 
     private List<AuditLog> fetchAuditLogs(Organization org, AuditAction actionFilter) {

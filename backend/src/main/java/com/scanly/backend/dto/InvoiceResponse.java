@@ -39,7 +39,34 @@ public class InvoiceResponse {
     private Boolean isDuplicate;
     private UUID duplicateOfId;
     private String duplicateReason;
-    private List<LineItem> lineItems;
+    private List<LineItemDto> lineItems;
+
+    /** Flat, safe projection of a LineItem — no JPA back-references. */
+    @Getter
+    @Builder
+    public static class LineItemDto {
+        private UUID id;
+        private String description;
+        private String hsnCode;
+        private BigDecimal quantity;
+        private BigDecimal unitPrice;
+        private BigDecimal taxRate;
+        private BigDecimal totalPrice;
+        private Instant createdAt;
+
+        public static LineItemDto from(LineItem item) {
+            return LineItemDto.builder()
+                .id(item.getId())
+                .description(item.getDescription())
+                .hsnCode(item.getHsnCode())
+                .quantity(item.getQuantity())
+                .unitPrice(item.getUnitPrice())
+                .taxRate(item.getTaxRate())
+                .totalPrice(item.getTotalPrice())
+                .createdAt(item.getCreatedAt())
+                .build();
+        }
+    }
 
     public static InvoiceResponse from(Invoice invoice) {
         return InvoiceResponse.builder()
@@ -56,6 +83,8 @@ public class InvoiceResponse {
             .isDuplicate(invoice.getIsDuplicate())
             .duplicateOfId(invoice.getDuplicateOfId())
             .duplicateReason(invoice.getDuplicateReason())
-            .lineItems(List.copyOf(invoice.getLineItems())).build();
+            .lineItems(invoice.getLineItems() == null ? List.of()
+                : invoice.getLineItems().stream().map(LineItemDto::from).toList())
+            .build();
     }
 }
