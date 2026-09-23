@@ -218,23 +218,46 @@ public class GroqAiService {
     }
 
     /**
-     * Find the tessdata directory in common Tesseract installation locations.
-     * Returns null if not found (Tesseract will use its default search path).
+     * Find the tessdata directory in common installation locations.
+     *
+     * Search order:
+     *   1. TESSDATA_PREFIX env var (highest priority — set in Docker/k8s)
+     *   2. Standard Windows install paths (local dev)
+     *   3. Linux paths used by Docker image (Ubuntu Jammy: Tesseract 4.x or 5.x)
+     *   4. macOS Homebrew
+     *
+     * Returns the *datapath* (parent of tessdata/), or null to let Tess4J
+     * use its own default search which reads TESSDATA_PREFIX from the env.
      */
     private String findTessdata() {
+        String envPrefix = System.getenv("TESSDATA_PREFIX");
         String[] candidates = {
+            // 1. Environment override — set in Docker or CI
+            envPrefix != null ? envPrefix : "",
+            // 2. Windows (WinGet / UB-Mannheim installer)
             "C:\\Program Files\\Tesseract-OCR\\tessdata",
             "C:\\Program Files (x86)\\Tesseract-OCR\\tessdata",
-            System.getenv("TESSDATA_PREFIX") != null ? System.getenv("TESSDATA_PREFIX") : "",
-            "/usr/share/tesseract-ocr/4.00/tessdata",   // Ubuntu
-            "/usr/local/share/tessdata"                  // macOS Homebrew
+            // 3. Linux Docker (Ubuntu Jammy apt package — Tesseract 4.x)
+            "/usr/share/tesseract-ocr/4.00/tessdata",
+            // 3b. Tesseract 5.x on newer Ubuntu/Debian
+            "/usr/share/tesseract-ocr/5/tessdata",
+            "/usr/share/tesseract-ocr/5.00/tessdata",
+            // 3c. Common Linux fallback
+            "/usr/share/tessdata",
+            "/usr/local/share/tessdata",
+            // 4. macOS Homebrew
+            "/opt/homebrew/share/tessdata",
+            "/usr/local/Cellar/tesseract/share/tessdata"
         };
         for (String path : candidates) {
             if (path != null && !path.isBlank() && new java.io.File(path).isDirectory()) {
-                log.info("Using tessdata at: {}", path);
-                return new java.io.File(path).getParent(); // datapath = parent of tessdata/
+                log.info("Tesseract tessdata found at: {}", path);
+                // datapath must point to the *parent* of tessdata/
+                return new java.io.File(path).getParent();
             }
         }
+        log.warn("Tesseract tessdata directory not found — OCR may fail. " +
+                 "Set TESSDATA_PREFIX env var or install Tesseract.");
         return null;
     }
 

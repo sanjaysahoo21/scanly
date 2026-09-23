@@ -1,4 +1,20 @@
+# =============================================================================
+# Scanly — Docker Compose
+# =============================================================================
+# Services:
+#   db       — PostgreSQL 16 database
+#   backend  — Spring Boot API (includes Tesseract OCR for image processing)
+#
+# Usage:
+#   Development:  docker compose up db          # DB only; run backend locally
+#   Full stack:   docker compose up --build     # DB + backend together
+#
+# Environment variables are read from the .env file in the project root.
+# =============================================================================
+
 services:
+
+  # ── PostgreSQL Database ────────────────────────────────────────────────────
   db:
     image: postgres:16
     container_name: scanly-db
@@ -12,7 +28,45 @@ services:
     volumes:
       - scanly-db-data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Spring Boot Backend (with Tesseract OCR bundled) ──────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: scanly-backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # ── Database — use Docker network hostname "db" instead of localhost ──
+      - DB_URL=jdbc:postgresql://db:5432/${POSTGRES_DB}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      # ── AI / OCR ────────────────────────────────────────────────────────
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GROQ_MODEL=${GROQ_MODEL:-openai/gpt-oss-120b}
+      # ── JWT ─────────────────────────────────────────────────────────────
+      - SCANLY_JWT_SECRET=${SCANLY_JWT_SECRET}
+      - SCANLY_JWT_EXPIRATION_MS=${SCANLY_JWT_EXPIRATION_MS:-86400000}
+      # ── Server ──────────────────────────────────────────────────────────
+      - SERVER_PORT=8081
+      - TZ=UTC
+    ports:
+      - "8081:8081"
+    volumes:
+      # Persist uploaded documents across container restarts
+      - scanly-uploads:/app/uploads
+    restart: unless-stopped
 
 volumes:
   scanly-db-data:
     name: scanly-db-data
+  scanly-uploads:
+    name: scanly-uploads
