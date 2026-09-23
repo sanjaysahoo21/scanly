@@ -1,6 +1,6 @@
 # Scanly — AI-Powered Invoice Management System
 
-> **Final Year Project** — Intelligent invoice processing platform that extracts, validates, audits, and exports invoice data using AI and OCR.
+> Intelligent invoice processing platform that automatically extracts, validates, audits, and exports invoice data using AI and OCR.
 
 ---
 
@@ -459,4 +459,4 @@ All tables have indexes on foreign keys, status columns, and date columns for ef
 
 ## License
 
-This project is developed as a final year academic project. All rights reserved.
+This project is licensed under the MIT License.

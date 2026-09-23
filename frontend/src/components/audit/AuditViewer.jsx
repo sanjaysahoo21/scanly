@@ -17,9 +17,17 @@ function AuditViewer({
   saving = false,
 }) {
   const [activeTab, setActiveTab] = useState('preview')
-  const [pdfBlobUrl, setPdfBlobUrl] = useState(null)
-  const [pdfLoading, setPdfLoading] = useState(false)
-  const [pdfError, setPdfError] = useState(false)
+  const [fileBlobUrl, setFileBlobUrl] = useState(null)
+  const [fileLoading, setFileLoading] = useState(false)
+  const [fileError, setFileError] = useState(false)
+
+  // Determine if this is an image or a PDF
+  const isImage = (
+    document.fileType === 'JPG' ||
+    document.fileType === 'PNG' ||
+    document.fileType === 'JPEG' ||
+    /\.(jpg|jpeg|png|gif|webp)$/i.test(document.fileName || '')
+  )
 
   const canPreview = document.id && (
     document.status === 'COMPLETED' ||
@@ -33,9 +41,9 @@ function AuditViewer({
       return
     }
     let objectUrl = null
-    setPdfLoading(true)
-    setPdfError(false)
-    setPdfBlobUrl(null)
+    setFileLoading(true)
+    setFileError(false)
+    setFileBlobUrl(null)
 
     fetch(`/api/v1/documents/${document.id}/file`, {
       headers: { Authorization: `Bearer ${getToken()}` },
@@ -46,13 +54,13 @@ function AuditViewer({
       })
       .then((blob) => {
         objectUrl = URL.createObjectURL(blob)
-        setPdfBlobUrl(objectUrl)
+        setFileBlobUrl(objectUrl)
       })
       .catch(() => {
-        setPdfError(true)
+        setFileError(true)
         setActiveTab('form')
       })
-      .finally(() => setPdfLoading(false))
+      .finally(() => setFileLoading(false))
 
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl)
@@ -60,10 +68,10 @@ function AuditViewer({
   }, [document.id, document.status])
 
   const handleDownload = () => {
-    if (!pdfBlobUrl) return
+    if (!fileBlobUrl) return
     const a = window.document.createElement('a')
-    a.href = pdfBlobUrl
-    a.download = document.fileName || 'document.pdf'
+    a.href = fileBlobUrl
+    a.download = document.fileName || 'document'
     a.click()
   }
 
@@ -88,7 +96,7 @@ function AuditViewer({
               Reprocess
             </Button>
           )}
-          {pdfBlobUrl && (
+          {fileBlobUrl && (
             <Button variant="ghost" icon={Download} onClick={handleDownload} size="sm">
               Download
             </Button>
@@ -106,11 +114,11 @@ function AuditViewer({
         <button
           className={`audit-tab ${activeTab === 'preview' ? 'audit-tab-active' : ''}`}
           onClick={() => setActiveTab('preview')}
-          disabled={!canPreview && !pdfLoading}
+          disabled={!canPreview && !fileLoading}
         >
           <Eye size={15} />
           Preview
-          {pdfLoading && <Loader size={13} style={{ animation: 'spin 1s linear infinite' }} />}
+          {fileLoading && <Loader size={13} style={{ animation: 'spin 1s linear infinite' }} />}
         </button>
         <button
           className={`audit-tab ${activeTab === 'form' ? 'audit-tab-active' : ''}`}
@@ -124,27 +132,36 @@ function AuditViewer({
       {/* Tab Content */}
       {activeTab === 'preview' && (
         <div className="audit-preview-panel">
-          {pdfLoading && (
+          {fileLoading && (
             <div className="pdf-viewer-placeholder">
               <Loader size={40} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite' }} />
               <h3>Loading Preview…</h3>
             </div>
           )}
-          {!pdfLoading && pdfBlobUrl && (
+          {!fileLoading && fileBlobUrl && isImage && (
+            <div className="image-preview-wrapper">
+              <img
+                src={fileBlobUrl}
+                alt={`Preview: ${document.fileName}`}
+                className="image-preview"
+              />
+            </div>
+          )}
+          {!fileLoading && fileBlobUrl && !isImage && (
             <iframe
-              src={pdfBlobUrl}
+              src={fileBlobUrl}
               title={`Preview: ${document.fileName}`}
               className="pdf-iframe"
             />
           )}
-          {!pdfLoading && pdfError && (
+          {!fileLoading && fileError && (
             <div className="pdf-viewer-placeholder">
               <AlertTriangle size={48} strokeWidth={1} />
               <h3>Preview Unavailable</h3>
               <p>Could not load the document file. Try reprocessing it.</p>
             </div>
           )}
-          {!pdfLoading && !pdfBlobUrl && !pdfError && (
+          {!fileLoading && !fileBlobUrl && !fileError && (
             <div className="pdf-viewer-placeholder">
               {document.status === 'PENDING' || document.status === 'PROCESSING' ? (
                 <>

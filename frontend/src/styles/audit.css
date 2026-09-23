@@ -123,6 +123,33 @@
   display: block;
 }
 
+/* Image preview — same container as PDF, just renders an <img> */
+.image-preview-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: var(--color-bg-alt);
+  padding: var(--space-4);
+}
+
+.image-preview {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.2s ease;
+  cursor: zoom-in;
+}
+
+.image-preview:active {
+  transform: scale(1.5);
+  cursor: zoom-out;
+  transform-origin: top center;
+}
+
 /* --- Form Panel --- */
 .audit-form-panel {
   display: flex;
