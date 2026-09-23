@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom'
 import StatsCard from '../components/common/StatsCard.jsx'
 import DocumentTable from '../components/documents/DocumentTable.jsx'
 import Button from '../components/common/Button.jsx'
+import StatusBadge from '../components/common/StatusBadge.jsx'
 import { getDashboardStats } from '../services/dashboardService.js'
 import '../styles/dashboard.css'
 
@@ -81,20 +82,38 @@ function DashboardPage() {
         />
       </div>
 
-      {/* Status Breakdown */}
-      {stats && (stats.processing > 0 || stats.failed > 0) && (
+      {/* Status Breakdown Bar */}
+      {stats && stats.totalDocuments > 0 && (
         <div className="dashboard-chart-area animate-fade-in-up stagger-5">
           <h3>Status Breakdown</h3>
-          <div className="status-breakdown">
-            {[
-              { label: 'Processing', value: stats.processing, cls: 'status-processing' },
-              { label: 'Failed', value: stats.failed, cls: 'status-failed' },
-            ].map(({ label, value, cls }) => (
-              <div key={label} className="status-breakdown-item">
-                <span className={`status-badge ${cls}`}>{label}</span>
-                <span className="status-breakdown-count">{value}</span>
-              </div>
-            ))}
+          <p className="chart-subtitle">Distribution of all documents across processing stages</p>
+          
+          <div className="progress-stacked-container">
+            {/* The horizontal bar */}
+            <div className="progress-stacked-bar">
+              {stats.completed > 0 && <div className="progress-segment bg-success" style={{ width: `${(stats.completed / stats.totalDocuments) * 100}%` }} title="Completed" />}
+              {stats.processing > 0 && <div className="progress-segment bg-accent" style={{ width: `${(stats.processing / stats.totalDocuments) * 100}%` }} title="Processing" />}
+              {stats.pending > 0 && <div className="progress-segment bg-pending" style={{ width: `${(stats.pending / stats.totalDocuments) * 100}%` }} title="Pending" />}
+              {stats.needsReview > 0 && <div className="progress-segment bg-warning" style={{ width: `${(stats.needsReview / stats.totalDocuments) * 100}%` }} title="Needs Review" />}
+              {stats.failed > 0 && <div className="progress-segment bg-error" style={{ width: `${(stats.failed / stats.totalDocuments) * 100}%` }} title="Failed" />}
+            </div>
+            
+            {/* The Legend */}
+            <div className="progress-legend">
+              {[
+                { status: 'COMPLETED', label: 'Completed', value: stats.completed },
+                { status: 'PROCESSING', label: 'Processing', value: stats.processing },
+                { status: 'PENDING', label: 'Pending', value: stats.pending },
+                { status: 'NEEDS_REVIEW', label: 'Needs Review', value: stats.needsReview },
+                { status: 'FAILED', label: 'Failed', value: stats.failed },
+              ].filter(item => item.value > 0).map(({ status, label, value }) => (
+                <div key={status} className="legend-item">
+                  <StatusBadge status={status} />
+                  <span className="legend-value">{value}</span>
+                  <span className="legend-percent">{((value / stats.totalDocuments) * 100).toFixed(0)}%</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList, FileText } from 'lucide-react'
 import '../../styles/audit.css'
 
 function AuditLogTable({ logs = [] }) {
@@ -20,6 +20,7 @@ function AuditLogTable({ logs = [] }) {
         <thead>
           <tr>
             <th>User</th>
+            <th>Document</th>
             <th>Entity</th>
             <th>Field</th>
             <th>Old Value</th>
@@ -31,7 +32,18 @@ function AuditLogTable({ logs = [] }) {
         <tbody>
           {logs.map((log) => (
             <tr key={log.id}>
-              <td className="audit-user-cell">{log.user?.fullName || '—'}</td>
+              <td className="audit-user-cell">{log.userFullName || '—'}</td>
+              <td className="audit-doc-cell">
+                {log.documentFileName
+                  ? (
+                    <span className="audit-doc-name" title={log.documentFileName}>
+                      <FileText size={13} style={{ flexShrink: 0 }} />
+                      {log.documentFileName}
+                    </span>
+                  )
+                  : '—'
+                }
+              </td>
               <td>
                 <span className="audit-entity-badge">{log.entityType}</span>
               </td>

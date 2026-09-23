@@ -252,8 +252,8 @@ public class GroqAiService {
         for (String path : candidates) {
             if (path != null && !path.isBlank() && new java.io.File(path).isDirectory()) {
                 log.info("Tesseract tessdata found at: {}", path);
-                // datapath must point to the *parent* of tessdata/
-                return new java.io.File(path).getParent();
+                // datapath must point directly to the tessdata/ directory in Tess4J
+                return path;
             }
         }
         log.warn("Tesseract tessdata directory not found — OCR may fail. " +

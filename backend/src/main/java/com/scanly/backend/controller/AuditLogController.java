@@ -1,6 +1,7 @@
 package com.scanly.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scanly.backend.dto.AuditLogResponse;
 import com.scanly.backend.entity.AuditLog;
 import com.scanly.backend.entity.User;
 import com.scanly.backend.entity.enums.AuditAction;
@@ -66,7 +67,7 @@ public class AuditLogController {
         }
 
         return ResponseEntity.ok(Map.of(
-            "logs", result.getContent(),
+            "logs", result.getContent().stream().map(AuditLogResponse::from).toList(),
             "totalElements", result.getTotalElements(),
             "totalPages", result.getTotalPages(),
             "currentPage", result.getNumber()
@@ -95,7 +96,7 @@ public class AuditLogController {
         }
 
         if ("json".equalsIgnoreCase(format)) {
-            List<AuditLog> logs = fetchAll(org, actionFilter);
+            List<AuditLogResponse> logs = fetchAll(org, actionFilter);
             try {
                 byte[] json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(logs);
                 return ResponseEntity.ok()
@@ -114,12 +115,12 @@ public class AuditLogController {
             .body(csv);
     }
 
-    private List<AuditLog> fetchAll(com.scanly.backend.entity.Organization org, AuditAction actionFilter) {
+    private List<AuditLogResponse> fetchAll(com.scanly.backend.entity.Organization org, AuditAction actionFilter) {
         Pageable all = PageRequest.of(0, 10_000);
-        if (actionFilter != null) {
-            return auditLogRepository.findByOrganizationAndAction(org, actionFilter, all).getContent();
-        }
-        return auditLogRepository.findByOrganization(org, all).getContent();
+        List<AuditLog> logs = actionFilter != null
+            ? auditLogRepository.findByOrganizationAndAction(org, actionFilter, all).getContent()
+            : auditLogRepository.findByOrganization(org, all).getContent();
+        return logs.stream().map(AuditLogResponse::from).toList();
     }
 }
 

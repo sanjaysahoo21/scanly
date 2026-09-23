@@ -43,7 +43,7 @@ public class Document {
     @JoinColumn(name = "organization_id", nullable = false)
     private Organization organization;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "uploaded_by", nullable = false)
     private User uploadedBy;
 
