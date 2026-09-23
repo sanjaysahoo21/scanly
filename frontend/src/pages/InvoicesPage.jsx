@@ -1,11 +1,13 @@
-import { Receipt, Eye, Search, SlidersHorizontal, X, Download, FileText, FileJson, ChevronDown, AlertTriangle, Copy } from 'lucide-react'
+import { Receipt, Eye, Search, SlidersHorizontal, X, Download, FileText, FileJson, ChevronDown, AlertTriangle, Copy, RefreshCw, Clock } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getInvoices } from '../services/invoiceService.js'
 import { getToken } from '../services/authService.js'
+import { getDocuments } from '../services/documentService.js'
 import StatusBadge from '../components/common/StatusBadge.jsx'
 import ExportDropdown from '../components/common/ExportDropdown.jsx'
 import '../styles/invoices.css'
+
 
 // ── Batch export helper ──────────────────────────────────────────────────────
 async function exportBatch(ids, format) {
@@ -85,12 +87,16 @@ function InvoicesPage() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [showFilters, setShowFilters] = useState(false)
   const [totalElements, setTotalElements] = useState(0)
+  const [hasPendingDocs, setHasPendingDocs] = useState(false)
 
+  // Keep a ref so the poll callback always sees current filters without re-mounting
+  const filtersRef = useRef(DEFAULT_FILTERS)
   // Debounce ref for text search
   const debounceRef = useRef(null)
 
   const fetchInvoices = useCallback((activeFilters) => {
     setLoading(true)
+    filtersRef.current = activeFilters
     const params = {
       q: activeFilters.q || undefined,
       audited: activeFilters.audited === 'true' ? true : activeFilters.audited === 'false' ? false : undefined,
@@ -108,6 +114,24 @@ function InvoicesPage() {
 
   // Initial load
   useEffect(() => { fetchInvoices(DEFAULT_FILTERS) }, [fetchInvoices])
+
+  // Auto-poll every 5 s while any document is still PENDING/PROCESSING.
+  // Once processing finishes the new invoice will appear automatically.
+  useEffect(() => {
+    let stopped = false
+    async function tick() {
+      try {
+        const docs = await getDocuments()
+        const pending = docs.some(d => d.status === 'PENDING' || d.status === 'PROCESSING')
+        if (!stopped) {
+          setHasPendingDocs(pending)
+          if (pending) fetchInvoices(filtersRef.current)
+        }
+      } catch (_) { /* silent — don't override existing error state */ }
+    }
+    const interval = setInterval(tick, 5000)
+    return () => { stopped = true; clearInterval(interval) }
+  }, [fetchInvoices])
 
   // When non-text filters change, fetch immediately
   function applyFilter(key, value) {
@@ -147,12 +171,28 @@ function InvoicesPage() {
           <h1>Invoices</h1>
           <p>
             {loading ? 'Loading…' : `${totalElements} invoice${totalElements !== 1 ? 's' : ''}${hasActiveFilters ? ' matched' : ''}`}
+            {hasPendingDocs && !loading && (
+              <span style={{ marginLeft: '0.6rem', fontSize: 'var(--text-xs)', color: 'var(--color-warning, #f59e0b)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Clock size={11} /> Processing…
+              </span>
+            )}
           </p>
         </div>
-        {selected.size > 0
-          ? <SelectionExportDropdown selectedIds={selected} onClear={() => setSelected(new Set())} />
-          : <ExportDropdown endpoint="/api/v1/invoices/export" filename="invoices" disabled={loading || invoices.length === 0} />
-        }
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button
+            id="refresh-invoices-btn"
+            className="topnav-icon-btn"
+            onClick={() => fetchInvoices(filtersRef.current)}
+            title="Refresh invoices"
+            disabled={loading}
+          >
+            <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+          </button>
+          {selected.size > 0
+            ? <SelectionExportDropdown selectedIds={selected} onClear={() => setSelected(new Set())} />
+            : <ExportDropdown endpoint="/api/v1/invoices/export" filename="invoices" disabled={loading || invoices.length === 0} />
+          }
+        </div>
       </div>
 
       {/* ── Search + Filter Bar ─────────────────────────────────────────── */}
@@ -257,8 +297,17 @@ function InvoicesPage() {
           <div className="empty-state">
             <Receipt className="empty-state-icon" />
             <h3>{hasActiveFilters ? 'No results found' : 'No invoices yet'}</h3>
-            <p>{hasActiveFilters ? 'Try adjusting your filters.' : 'Invoices appear after document processing completes.'}</p>
+            <p>
+              {hasActiveFilters
+                ? 'Try adjusting your filters.'
+                : hasPendingDocs
+                  ? 'Documents are still processing — this page refreshes automatically.'
+                  : 'Upload a PDF or image invoice from the Documents page to get started.'}
+            </p>
             {hasActiveFilters && <button className="btn-secondary" onClick={resetFilters} style={{ marginTop: 'var(--space-3)' }}>Clear filters</button>}
+            {!hasActiveFilters && !hasPendingDocs && (
+              <a href="/documents/upload" className="btn-secondary" style={{ marginTop: 'var(--space-3)', display: 'inline-block' }}>Upload Documents</a>
+            )}
           </div>
         </div>
       ) : (

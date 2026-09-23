@@ -5,6 +5,7 @@ import com.scanly.backend.dto.UploadResponse;
 import com.scanly.backend.entity.Document;
 import com.scanly.backend.entity.Organization;
 import com.scanly.backend.entity.User;
+import com.scanly.backend.entity.enums.AuditAction;
 import com.scanly.backend.entity.enums.DocumentStatus;
 import com.scanly.backend.entity.enums.FileType;
 import com.scanly.backend.repository.DocumentRepository;
@@ -42,6 +43,7 @@ public class DocumentService {
 
     private final DocumentRepository documentRepository;
     private final DocumentProcessingService processingService;
+    private final AuditService auditService;
 
     @Value("${scanly.upload-dir}")
     private String uploadDir;
@@ -111,6 +113,14 @@ public class DocumentService {
             // Trigger async AI/OCR processing in background with ID
             processingService.processDocument(document.getId());
             log.info("Queued document {} for AI processing", document.getId());
+
+            // Write an UPLOAD audit log so the audit trail is populated from the start
+            try {
+                auditService.recordDocument(document, currentUser, AuditAction.UPLOAD,
+                    "status", null, DocumentStatus.PENDING.name());
+            } catch (Exception ae) {
+                log.warn("Audit log write failed for document {}: {}", document.getId(), ae.getMessage());
+            }
 
             jobs.add(DocumentJobDto.builder()
                 .jobId(document.getId())

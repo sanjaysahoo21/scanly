@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scanly.backend.entity.Document;
 import com.scanly.backend.entity.Invoice;
 import com.scanly.backend.entity.LineItem;
+import com.scanly.backend.entity.enums.AuditAction;
 import com.scanly.backend.entity.enums.Currency;
 import com.scanly.backend.entity.enums.DocumentStatus;
 import com.scanly.backend.entity.enums.FileType;
@@ -46,6 +47,7 @@ public class DocumentProcessingService {
     private final GroqAiService groqAiService;
     private final InvoiceValidationService validationService;
     private final DuplicateDetectionService duplicateDetectionService;
+    private final AuditService auditService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${scanly.upload-dir:./uploads}")
@@ -135,11 +137,29 @@ public class DocumentProcessingService {
 
             documentRepository.save(document);
             log.info("Successfully processed document: {} → status: {}", document.getId(), document.getStatus());
+
+            // Audit: processing completed
+            try {
+                auditService.recordDocument(document, document.getUploadedBy(),
+                    AuditAction.PROCESS_COMPLETE, "status",
+                    DocumentStatus.PROCESSING.name(), document.getStatus().name());
+            } catch (Exception ae) {
+                log.warn("Audit log write failed: {}", ae.getMessage());
+            }
         } catch (Exception e) {
             log.error("Failed to parse/save invoice for document {}: {}", documentId, e.getMessage(), e);
             document.setStatus(DocumentStatus.FAILED);
             document.setErrorMessage("Invoice parsing failed: " + e.getMessage());
             documentRepository.save(document);
+
+            // Audit: processing failed
+            try {
+                auditService.recordDocument(document, document.getUploadedBy(),
+                    AuditAction.PROCESS_FAILED, "errorMessage",
+                    null, e.getMessage());
+            } catch (Exception ae) {
+                log.warn("Audit log write failed: {}", ae.getMessage());
+            }
         }
     }
 

@@ -64,6 +64,9 @@ function AuditLogsPage() {
             onChange={(e) => setActionFilter(e.target.value)}
           >
             <option value="">All Actions</option>
+            <option value="UPLOAD">Upload</option>
+            <option value="PROCESS_COMPLETE">Process Complete</option>
+            <option value="PROCESS_FAILED">Process Failed</option>
             <option value="EDIT">Edit</option>
             <option value="APPROVE">Approve</option>
             <option value="REJECT">Reject</option>
