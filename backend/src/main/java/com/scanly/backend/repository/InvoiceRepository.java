@@ -35,6 +35,10 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID>, JpaSpec
 
     long countByIsAudited(boolean isAudited);
 
+    /** Fetch ALL invoices for an org — used by integration push-all. */
+    @EntityGraph(attributePaths = {"document", "lineItems"})
+    List<Invoice> findAllByDocumentOrganizationId(UUID organizationId);
+
     // ── Duplicate detection ───────────────────────────────────────────────────
 
     /**

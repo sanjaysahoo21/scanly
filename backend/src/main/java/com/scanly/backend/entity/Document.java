@@ -14,6 +14,7 @@ import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
+import org.springframework.lang.Nullable;
 
 /**
  * Document entity.
@@ -82,6 +83,14 @@ public class Document {
     @Column(name = "retry_count", nullable = false)
     @Builder.Default
     private Integer retryCount = 0;
+
+    /**
+     * Optional folder this document has been filed under.
+     * Null = no folder / unorganised.
+     */
+    @Column(name = "folder_id")
+    @Nullable
+    private UUID folderId;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
