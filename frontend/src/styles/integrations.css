@@ -1,0 +1,410 @@
+/* ────────────────────────────────────────────────────────────
+   Integrations Page Styles
+   ──────────────────────────────────────────────────────────── */
+
+/* ── Card List ───────────────────────────────────────────────── */
+.integration-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 780px;
+}
+
+.integration-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: box-shadow var(--transition-fast);
+}
+
+.integration-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.integration-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.integration-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+
+.integration-badge {
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--color-accent-light, rgba(99,102,241,0.1));
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent-light, rgba(99,102,241,0.2));
+}
+
+.integration-badge.muted {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+
+.integration-badge.ssl {
+  background: rgba(34,197,94,0.1);
+  color: #16a34a;
+  border-color: rgba(34,197,94,0.3);
+}
+
+/* ── Card icon buttons ───────────────────────────────────────── */
+.integration-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.integration-icon-btn:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-accent);
+}
+
+.integration-icon-btn.primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.integration-icon-btn.primary:hover {
+  opacity: 0.85;
+  color: #fff;
+}
+
+.integration-icon-btn.danger:hover {
+  background: rgba(239,68,68,0.08);
+  border-color: rgba(239,68,68,0.4);
+  color: #ef4444;
+}
+
+.integration-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Push logs toggle ────────────────────────────────────────── */
+.integration-logs-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: var(--space-2);
+  padding: 4px 0;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.integration-logs-toggle:hover {
+  color: var(--color-accent);
+}
+
+/* ── Push logs ───────────────────────────────────────────────── */
+.integration-logs {
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.integration-log-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.integration-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding: 5rem 2rem;
+  color: var(--color-text-secondary);
+}
+
+.integration-empty h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--color-text);
+}
+
+.integration-empty p {
+  margin: 0;
+  max-width: 400px;
+  color: var(--color-text-muted);
+}
+
+/* ── Wizard overlay ──────────────────────────────────────────── */
+.integration-wizard-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-4);
+}
+
+.integration-wizard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-xl, 0 25px 50px rgba(0,0,0,0.4));
+  animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(-16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+.integration-wizard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.integration-wizard-body {
+  padding: var(--space-5);
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.integration-wizard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--color-border-light);
+  gap: var(--space-2);
+}
+
+.wizard-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.wizard-close-btn:hover { color: var(--color-text); }
+
+.wizard-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.wizard-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.wizard-dbtype-grid {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.wizard-dbtype-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: var(--space-3);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.wizard-dbtype-btn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light, rgba(99,102,241,0.05));
+}
+
+.wizard-dbtype-btn.selected {
+  background: var(--color-accent-light, rgba(99,102,241,0.08));
+  color: var(--color-accent);
+}
+
+.wizard-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── Wizard result banners ───────────────────────────────────── */
+.wizard-test-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.wizard-test-result.ok {
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+  border: 1px solid rgba(34,197,94,0.3);
+}
+
+.wizard-test-result.fail {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+  border: 1px solid rgba(239,68,68,0.25);
+}
+
+/* ── Wizard footer buttons ───────────────────────────────────── */
+.wizard-test-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.wizard-test-btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.wizard-test-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.wizard-cancel-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.wizard-cancel-btn:hover { background: var(--color-bg); color: var(--color-text); }
+
+.wizard-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.wizard-save-btn:hover:not(:disabled) { opacity: 0.88; }
+.wizard-save-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Push result panel ───────────────────────────────────────── */
+.push-result-panel {
+  margin-top: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  font-size: var(--text-sm);
+}
+
+.push-result-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border-light);
+  font-weight: 600;
+}
+
+.push-result-stats {
+  display: flex;
+  gap: var(--space-3);
+  padding: 8px 14px;
+}
+
+.push-result-stats .stat { font-size: var(--text-sm); }
+.push-result-stats .stat.fail { color: #dc2626; }
+.push-result-stats .stat.ok  { color: #16a34a; }
+
+.push-failure-list {
+  margin: 0;
+  padding: 0 14px 10px 28px;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+}
+
+/* ── Spinner ─────────────────────────────────────────────────── */
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
