@@ -9,6 +9,7 @@ import DocumentDetailPage from './pages/DocumentDetailPage.jsx'
 import InvoicesPage from './pages/InvoicesPage.jsx'
 import InvoiceDetailPage from './pages/InvoiceDetailPage.jsx'
 import AuditLogsPage from './pages/AuditLogsPage.jsx'
+import IntegrationsPage from './pages/IntegrationsPage.jsx'
 import { isLoggedIn } from './services/authService.js'
 
 function ProtectedLayout() {
@@ -34,6 +35,7 @@ function App() {
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
           <Route path="/audit-logs" element={<AuditLogsPage />} />
+          <Route path="/settings/integrations" element={<IntegrationsPage />} />
         </Route>
 
         {/* Fallback */}

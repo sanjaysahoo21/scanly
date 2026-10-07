@@ -7,6 +7,7 @@ import {
   ClipboardList,
   ChevronLeft,
   ChevronRight,
+  Database,
 } from 'lucide-react'
 import { useState } from 'react'
 import '../../styles/layout.css'
@@ -17,6 +18,7 @@ const navItems = [
   { path: '/documents/upload', label: 'Upload', icon: Upload },
   { path: '/invoices', label: 'Invoices', icon: Receipt },
   { path: '/audit-logs', label: 'Audit Logs', icon: ClipboardList },
+  { path: '/settings/integrations', label: 'Integrations', icon: Database },
 ]
 
 function Sidebar({ collapsed, onToggle }) {
