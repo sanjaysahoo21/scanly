@@ -1,12 +1,14 @@
-import { Receipt, Eye, Search, SlidersHorizontal, X, Download, FileText, FileJson, ChevronDown, AlertTriangle, Copy, RefreshCw, Clock } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Receipt, Eye, Search, SlidersHorizontal, X, Download, FileText, FileJson, ChevronDown, AlertTriangle, Copy, RefreshCw, Clock, FolderOpen } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { getInvoices } from '../services/invoiceService.js'
 import { getToken } from '../services/authService.js'
 import { getDocuments } from '../services/documentService.js'
 import StatusBadge from '../components/common/StatusBadge.jsx'
 import ExportDropdown from '../components/common/ExportDropdown.jsx'
+import FolderManager from '../components/documents/FolderManager.jsx'
 import '../styles/invoices.css'
+import '../styles/folders.css'
 
 
 // ── Batch export helper ──────────────────────────────────────────────────────
@@ -89,6 +91,10 @@ function InvoicesPage() {
   const [totalElements, setTotalElements] = useState(0)
   const [hasPendingDocs, setHasPendingDocs] = useState(false)
 
+  // Folder sidebar
+  const [selectedFolder, setSelectedFolder] = useState(null) // null = All
+  const [folderDocIds, setFolderDocIds] = useState(null)     // Set<UUID> | null = no filter
+
   // Keep a ref so the poll callback always sees current filters without re-mounting
   const filtersRef = useRef(DEFAULT_FILTERS)
   // Debounce ref for text search
@@ -155,8 +161,27 @@ function InvoicesPage() {
     fetchInvoices(DEFAULT_FILTERS)
   }
 
-  const allChecked = invoices.length > 0 && selected.size === invoices.length
-  function toggleAll() { setSelected(allChecked ? new Set() : new Set(invoices.map(inv => inv.id))) }
+  // When folder changes, load folder's document IDs and re-filter
+  useEffect(() => {
+    if (!selectedFolder) { setFolderDocIds(null); return }
+    getDocuments(selectedFolder.id)
+      .then(docs => setFolderDocIds(new Set(docs.map(d => d.id))))
+      .catch(() => setFolderDocIds(null))
+  }, [selectedFolder])
+
+  // Invoices filtered by selected folder (client-side by documentId)
+  const folderFilteredInvoices = useMemo(() => {
+    if (!folderDocIds) return invoices
+    return invoices.filter(inv => folderDocIds.has(inv.documentId))
+  }, [invoices, folderDocIds])
+
+  const handleFolderSelect = (folder) => {
+    setSelectedFolder(folder)
+    setSelected(new Set())
+  }
+
+  const allChecked = folderFilteredInvoices.length > 0 && selected.size === folderFilteredInvoices.length
+  function toggleAll() { setSelected(allChecked ? new Set() : new Set(folderFilteredInvoices.map(inv => inv.id))) }
   function toggleOne(id) {
     setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
@@ -168,9 +193,16 @@ function InvoicesPage() {
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="page-header animate-fade-in-up" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1>Invoices</h1>
+          <h1>
+            {selectedFolder ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <FolderOpen size={22} color={selectedFolder.color} />
+                {selectedFolder.name}
+              </span>
+            ) : 'Invoices'}
+          </h1>
           <p>
-            {loading ? 'Loading…' : `${totalElements} invoice${totalElements !== 1 ? 's' : ''}${hasActiveFilters ? ' matched' : ''}`}
+            {loading ? 'Loading…' : `${folderFilteredInvoices.length} invoice${folderFilteredInvoices.length !== 1 ? 's' : ''}${selectedFolder ? ` in "${selectedFolder.name}"` : hasActiveFilters ? ' matched' : ''}`}
             {hasPendingDocs && !loading && (
               <span style={{ marginLeft: '0.6rem', fontSize: 'var(--text-xs)', color: 'var(--color-warning, #f59e0b)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Clock size={11} /> Processing…
@@ -190,7 +222,7 @@ function InvoicesPage() {
           </button>
           {selected.size > 0
             ? <SelectionExportDropdown selectedIds={selected} onClear={() => setSelected(new Set())} />
-            : <ExportDropdown endpoint="/api/v1/invoices/export" filename="invoices" disabled={loading || invoices.length === 0} />
+            : <ExportDropdown endpoint="/api/v1/invoices/export" filename="invoices" disabled={loading || folderFilteredInvoices.length === 0} />
           }
         </div>
       </div>
@@ -289,85 +321,103 @@ function InvoicesPage() {
 
       {error && <div className="upload-status upload-status-error">{error}</div>}
 
-      {/* ── Table ──────────────────────────────────────────────────────── */}
+      {/* ── Folder sidebar + Table layout ───────────────────────────── */}
+      <div className="documents-main animate-fade-in-up stagger-2">
+        {/* Folder sidebar */}
+        <section className="documents-folder-bar" aria-label="Invoice folders">
+          <FolderManager
+            compact
+            variant="toolbar"
+            selectedFolderId={selectedFolder?.id ?? null}
+            onSelectFolder={handleFolderSelect}
+          />
+        </section>
+
+        {/* Table area */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+
       {loading ? (
-        <p style={{ color: 'var(--color-text-muted)', marginTop: 'var(--space-4)' }}>Loading invoices…</p>
-      ) : invoices.length === 0 ? (
-        <div className="table-container">
-          <div className="empty-state">
-            <Receipt className="empty-state-icon" />
-            <h3>{hasActiveFilters ? 'No results found' : 'No invoices yet'}</h3>
-            <p>
-              {hasActiveFilters
-                ? 'Try adjusting your filters.'
-                : hasPendingDocs
-                  ? 'Documents are still processing — this page refreshes automatically.'
-                  : 'Upload a PDF or image invoice from the Documents page to get started.'}
-            </p>
-            {hasActiveFilters && <button className="btn-secondary" onClick={resetFilters} style={{ marginTop: 'var(--space-3)' }}>Clear filters</button>}
-            {!hasActiveFilters && !hasPendingDocs && (
-              <a href="/documents/upload" className="btn-secondary" style={{ marginTop: 'var(--space-3)', display: 'inline-block' }}>Upload Documents</a>
+          <p style={{ color: 'var(--color-text-muted)', marginTop: 'var(--space-4)' }}>Loading invoices…</p>
+        ) : folderFilteredInvoices.length === 0 ? (
+          <div className="table-container">
+            <div className="empty-state">
+              <Receipt className="empty-state-icon" />
+              <h3>{selectedFolder ? `No invoices in "${selectedFolder.name}"` : hasActiveFilters ? 'No results found' : 'No invoices yet'}</h3>
+              <p>
+                {selectedFolder
+                  ? 'Move documents into this folder from the Documents page.'
+                  : hasActiveFilters
+                    ? 'Try adjusting your filters.'
+                    : hasPendingDocs
+                      ? 'Documents are still processing — this page refreshes automatically.'
+                      : 'Upload a PDF or image invoice from the Documents page to get started.'}
+              </p>
+              {hasActiveFilters && !selectedFolder && <button className="btn-secondary" onClick={resetFilters} style={{ marginTop: 'var(--space-3)' }}>Clear filters</button>}
+              {!hasActiveFilters && !hasPendingDocs && !selectedFolder && (
+                <a href="/documents/upload" className="btn-secondary" style={{ marginTop: 'var(--space-3)', display: 'inline-block' }}>Upload Documents</a>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="table-container animate-fade-in-up stagger-2">
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: '40px', paddingLeft: 'var(--space-4)' }}>
+                    <input type="checkbox" className="row-checkbox" checked={allChecked}
+                      onChange={toggleAll} aria-label="Select all" id="select-all-invoices" />
+                  </th>
+                  <th>Invoice</th>
+                  <th>Vendor</th>
+                  <th>Date</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th title="Math &amp; tax validation">⚠</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {folderFilteredInvoices.map((invoice) => (
+                  <tr key={invoice.id} className={selected.has(invoice.id) ? 'row-selected' : ''} onClick={() => toggleOne(invoice.id)} style={{ cursor: 'pointer' }}>
+                    <td style={{ paddingLeft: 'var(--space-4)' }} onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" className="row-checkbox" checked={selected.has(invoice.id)}
+                        onChange={() => toggleOne(invoice.id)} id={`sel-${invoice.id}`} />
+                    </td>
+                    <td>{invoice.invoiceNumber || '—'}</td>
+                    <td>{invoice.vendorName || '—'}</td>
+                    <td>{invoice.invoiceDate || '—'}</td>
+                    <td>{invoice.totalAmount ?? '—'} {invoice.currency || ''}</td>
+                    <td><StatusBadge status={invoice.isAudited ? 'COMPLETED' : 'NEEDS_REVIEW'} /></td>
+                    <td>
+                      {invoice.hasValidationErrors === true && (
+                        <span className="validation-badge-warn" title="Math/tax issues found">
+                          <AlertTriangle size={13} />
+                        </span>
+                      )}
+                      {invoice.isDuplicate === true && (
+                        <span className="validation-badge-duplicate" title="Possible duplicate invoice">
+                          <Copy size={13} />
+                        </span>
+                      )}
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <Link to={`/invoices/${invoice.id}`} aria-label="View invoice"><Eye size={16} /></Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {selected.size > 0 && (
+              <div className="selection-count-bar">
+                {selected.size} of {folderFilteredInvoices.length} selected
+                <button className="selection-clear-btn" onClick={() => setSelected(new Set())}>Clear</button>
+              </div>
             )}
           </div>
-        </div>
-      ) : (
-        <div className="table-container animate-fade-in-up stagger-2">
-          <table>
-            <thead>
-              <tr>
-                <th style={{ width: '40px', paddingLeft: 'var(--space-4)' }}>
-                  <input type="checkbox" className="row-checkbox" checked={allChecked}
-                    onChange={toggleAll} aria-label="Select all" id="select-all-invoices" />
-                </th>
-                <th>Invoice</th>
-                <th>Vendor</th>
-                <th>Date</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th title="Math & tax validation">⚠</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((invoice) => (
-                <tr key={invoice.id} className={selected.has(invoice.id) ? 'row-selected' : ''} onClick={() => toggleOne(invoice.id)} style={{ cursor: 'pointer' }}>
-                  <td style={{ paddingLeft: 'var(--space-4)' }} onClick={(e) => e.stopPropagation()}>
-                    <input type="checkbox" className="row-checkbox" checked={selected.has(invoice.id)}
-                      onChange={() => toggleOne(invoice.id)} id={`sel-${invoice.id}`} />
-                  </td>
-                  <td>{invoice.invoiceNumber || '—'}</td>
-                  <td>{invoice.vendorName || '—'}</td>
-                  <td>{invoice.invoiceDate || '—'}</td>
-                  <td>{invoice.totalAmount ?? '—'} {invoice.currency || ''}</td>
-                  <td><StatusBadge status={invoice.isAudited ? 'COMPLETED' : 'NEEDS_REVIEW'} /></td>
-                  <td>
-                    {invoice.hasValidationErrors === true && (
-                      <span className="validation-badge-warn" title="Math/tax issues found">
-                        <AlertTriangle size={13} />
-                      </span>
-                    )}
-                    {invoice.isDuplicate === true && (
-                      <span className="validation-badge-duplicate" title="Possible duplicate invoice">
-                        <Copy size={13} />
-                      </span>
-                    )}
-                  </td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <Link to={`/invoices/${invoice.id}`} aria-label="View invoice"><Eye size={16} /></Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {selected.size > 0 && (
-            <div className="selection-count-bar">
-              {selected.size} of {invoices.length} selected
-              <button className="selection-clear-btn" onClick={() => setSelected(new Set())}>Clear</button>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+        </div> {/* end table area */}
+      </div>   {/* end documents-main */}
     </div>
   )
 }
