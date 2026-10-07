@@ -2,14 +2,40 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle, AlertCircle, Loader } from 'lucide-react'
 import FileUploader from '../components/documents/FileUploader.jsx'
-import { uploadDocuments } from '../services/documentService.js'
+import { uploadDocuments, uploadFolder } from '../services/documentService.js'
+import { createFolder, getFolders } from '../services/folderService.js'
 
 function DocumentUploadPage() {
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState(null)   // { message, totalFiles, jobs }
   const [error, setError] = useState('')
   const [countdown, setCountdown] = useState(3)
+  const [folders, setFolders] = useState([])
   const navigate = useNavigate()
+
+  const handleCreateFolder = async (name) => {
+    const folder = await createFolder({ name, color: '#6366f1' })
+    setFolders((current) => [folder, ...current])
+    return folder
+  }
+
+  const createDefaultFolder = async (suggestedName) => {
+    const baseName = (suggestedName || 'Uploaded folder').trim().slice(0, 240) || 'Uploaded folder'
+    const names = new Set(folders.map((folder) => folder.name.toLocaleLowerCase()))
+    let name = baseName
+    let suffix = 2
+    while (names.has(name.toLocaleLowerCase())) {
+      name = `${baseName} (${suffix++})`
+    }
+    return handleCreateFolder(name)
+  }
+
+  // Load folders for the destination selector
+  useEffect(() => {
+    getFolders()
+      .then(setFolders)
+      .catch(() => {}) // Non-critical — just show no folders
+  }, [])
 
   // Auto-redirect to /documents after success so the user sees live status
   useEffect(() => {
@@ -26,15 +52,29 @@ function DocumentUploadPage() {
     return () => clearInterval(timer)
   }, [result, navigate])
 
-  const handleUpload = async (files) => {
+  /**
+   * Called by FileUploader with:
+   *   files       — array of valid File objects
+   *   folderId    — selected folder UUID or null
+   *   mode        — 'files' | 'folder'
+   */
+  const handleUpload = async (files, folderId, mode, folderName) => {
     setUploading(true)
     setError('')
     setResult(null)
     setCountdown(3)
 
     try {
-      const data = await uploadDocuments(files)
-      setResult(data)
+      let destinationFolderId = folderId
+      if (mode === 'folder' && !destinationFolderId) {
+        const folder = await createDefaultFolder(folderName)
+        destinationFolderId = folder.id
+      }
+
+      const data = mode === 'folder'
+        ? await uploadFolder(files, destinationFolderId)
+        : await uploadDocuments(files, destinationFolderId)
+      setResult({ ...data, mode })
     } catch (err) {
       setError(err.message || 'Upload failed. Please try again.')
     } finally {
@@ -46,13 +86,20 @@ function DocumentUploadPage() {
     <div className="page-content">
       <div className="page-header animate-fade-in-up">
         <h1>Upload Documents</h1>
-        <p>Upload invoices, receipts, or scanned documents for AI-powered data extraction.</p>
+        <p>
+          Upload individual invoices or an entire folder — all files are validated sequentially by the AI engine.
+        </p>
       </div>
 
       {/* Upload area — hide once upload succeeded */}
       {!result && (
         <div className="animate-fade-in-up stagger-1">
-          <FileUploader onUpload={handleUpload} uploading={uploading} />
+          <FileUploader
+            onUpload={handleUpload}
+            onCreateFolder={handleCreateFolder}
+            uploading={uploading}
+            folders={folders}
+          />
         </div>
       )}
 
@@ -70,7 +117,9 @@ function DocumentUploadPage() {
           <div className="upload-status upload-status-success">
             <CheckCircle size={20} />
             <span>
-              {result.totalFiles} {result.totalFiles === 1 ? 'file' : 'files'} uploaded and queued for AI processing!
+              {result.totalFiles} {result.totalFiles === 1 ? 'file' : 'files'}
+              {result.mode === 'folder' ? ' from folder ' : ' '}
+              uploaded and queued for AI validation!
             </span>
           </div>
 
