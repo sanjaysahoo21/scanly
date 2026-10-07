@@ -3,12 +3,14 @@ package com.scanly.backend.service;
 import com.scanly.backend.dto.DocumentJobDto;
 import com.scanly.backend.dto.UploadResponse;
 import com.scanly.backend.entity.Document;
+import com.scanly.backend.entity.InvoiceFolder;
 import com.scanly.backend.entity.Organization;
 import com.scanly.backend.entity.User;
 import com.scanly.backend.entity.enums.AuditAction;
 import com.scanly.backend.entity.enums.DocumentStatus;
 import com.scanly.backend.entity.enums.FileType;
 import com.scanly.backend.repository.DocumentRepository;
+import com.scanly.backend.repository.InvoiceFolderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,18 +46,27 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final DocumentProcessingService processingService;
     private final AuditService auditService;
+    private final InvoiceFolderRepository folderRepository;
 
     @Value("${scanly.upload-dir}")
     private String uploadDir;
 
     private static final long MAX_FILE_SIZE = 10L * 1024 * 1024; // 10MB
-    private static final int MAX_FILES_PER_REQUEST = 10;
+    private static final int MAX_FILES_PER_REQUEST = 50; // supports folder uploads with many files
 
-    public UploadResponse uploadDocuments(List<MultipartFile> files, User currentUser) throws IOException {
+    public UploadResponse uploadDocuments(List<MultipartFile> files, User currentUser, UUID folderId) throws IOException {
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("At least one file is required");
+        }
         if (files.size() > MAX_FILES_PER_REQUEST) {
             throw new IllegalArgumentException("A maximum of " + MAX_FILES_PER_REQUEST + " files may be uploaded at once");
         }
         Organization org = currentUser.getOrganization();
+        InvoiceFolder destinationFolder = null;
+        if (folderId != null) {
+            destinationFolder = folderRepository.findByIdAndOrganization(folderId, org)
+                .orElseThrow(() -> new IllegalArgumentException("Folder not found"));
+        }
         List<DocumentJobDto> jobs = new ArrayList<>();
 
         // Create org-specific upload directory (always resolve to absolute to avoid
@@ -106,6 +117,7 @@ public class DocumentService {
                 .fileType(fileType)
                 .fileSizeBytes(file.getSize())
                 .status(DocumentStatus.PENDING)
+                .folderId(folderId)
                 .build();
 
             document = documentRepository.saveAndFlush(document);
@@ -130,6 +142,14 @@ public class DocumentService {
                 .build());
         }
 
+        // Store a verified count once per batch.  This avoids accepting another
+        // organization's folder ID and prevents a partial batch from corrupting
+        // the count shown in the UI.
+        if (destinationFolder != null) {
+            destinationFolder.setDocumentCount((int) documentRepository.countByOrganizationAndFolderId(org, folderId));
+            folderRepository.save(destinationFolder);
+        }
+
         return UploadResponse.builder()
             .message("Documents accepted for processing")
             .totalFiles(jobs.size())
@@ -151,8 +171,13 @@ public class DocumentService {
 
     /**
      * Get all documents for the logged-in user's organization, newest first.
+     * If folderId is provided, only returns documents in that folder.
      */
-    public List<Document> getDocumentsByOrganization(User currentUser) {
+    public List<Document> getDocumentsByOrganization(User currentUser, UUID folderId) {
+        if (folderId != null) {
+            return documentRepository.findByOrganizationAndFolderIdOrderByCreatedAtDesc(
+                currentUser.getOrganization(), folderId);
+        }
         return documentRepository.findByOrganizationOrderByCreatedAtDesc(currentUser.getOrganization());
     }
 
@@ -162,6 +187,37 @@ public class DocumentService {
     public Optional<Document> getDocumentById(UUID id, User currentUser) {
         return documentRepository.findByIdAndOrganization(id, currentUser.getOrganization());
     }
+
+    /**
+     * Delete a document permanently.
+     * Removes the DB record, its associated invoice/line-items (cascade), and the file from disk.
+     * Returns Optional.empty() if not found or the doc doesn't belong to the org.
+     */
+    @Transactional
+    public Optional<String> deleteDocument(UUID id, User currentUser) {
+        return documentRepository.findByIdAndOrganization(id, currentUser.getOrganization()).map(doc -> {
+            // Delete file from disk
+            try {
+                Path filePath = Paths.get(doc.getFilePath());
+                Files.deleteIfExists(filePath);
+            } catch (Exception e) {
+                log.warn("Could not delete file for document {}: {}", id, e.getMessage());
+            }
+            // If the document was in a folder, refresh that folder's count
+            if (doc.getFolderId() != null) {
+                folderRepository.findById(doc.getFolderId()).ifPresent(folder -> {
+                    long newCount = documentRepository.countByOrganizationAndFolderId(
+                        currentUser.getOrganization(), folder.getId()) - 1;
+                    folder.setDocumentCount((int) Math.max(0, newCount));
+                    folderRepository.save(folder);
+                });
+            }
+            documentRepository.delete(doc);
+            log.info("Document {} deleted by {}", id, currentUser.getEmail());
+            return "Document deleted successfully";
+        });
+    }
+
 
     /**
      * Detect file type using the browser-supplied content type and file extension.
